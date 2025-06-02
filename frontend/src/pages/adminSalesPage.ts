@@ -26,7 +26,7 @@ export async function AdminSalesPage(containerId: string) {
       <div class="flex items-center gap-4 mb-6">
         <label for="client-filter" class="font-semibold">Filtrar por Cliente:</label>
         <select id="client-filter" class="border px-3 py-2 rounded">
-          <option value="all">Todas las ventas</option>
+          <option value="-1">Todas las ventas</option>
         </select>
       </div>
 
@@ -143,6 +143,9 @@ export async function AdminSalesPage(containerId: string) {
   // Cargar lista de clientes en el combo
   async function loadClients() {
     const clients = (await getAllClients()) || [];
+
+    // Ya existe la opción “Todas las ventas” con value="-1" en el HTML inicial,
+    // así que solo agregamos los clientes reales a continuación:
     clients.forEach((c) => {
       const opt = document.createElement("option");
       opt.value = c.id_cliente.toString();
@@ -150,6 +153,17 @@ export async function AdminSalesPage(containerId: string) {
       filterSelect.appendChild(opt);
     });
   }
+
+  // Evento para recargar ventas cuando cambia el filtro
+  filterSelect.addEventListener("change", () => {
+    const val = filterSelect.value;
+    const clientId = parseInt(val, 10);
+    if (isNaN(clientId) || clientId === -1) {
+      loadSales();
+    } else {
+      loadSales(clientId);
+    }
+  });
 
   // Cargar ventas (por cliente o todas)
   async function loadSales(clientId?: number) {
@@ -194,7 +208,7 @@ export async function AdminSalesPage(containerId: string) {
       // Aquí el cliente no aplica, porque abarca todas las ventas
       response = { ventas, cliente: undefined as any };
 
-      // Guardamos `all` en un scope superior para buscas más abajo
+      // Guardamos `all` en un scope superior para buscar más abajo
       allVentas = all;
     }
 
@@ -278,7 +292,11 @@ export async function AdminSalesPage(containerId: string) {
 
   // Variable en scope superior donde guardamos “allVentas”
   let allVentas: any[] = [];
+
+  // Cargamos los clientes en el select
   await loadClients();
+
+  // Obtenemos todas las ventas inicialmente y renderizamos
   allVentas = (await getAllSalesAdmin()) || [];
   loadSales();
 }

@@ -15,7 +15,6 @@ export function Navbar() {
     <li><a href="#/admin/productos" class="hover:underline">Adm Productos</a></li>
     <li><a href="#/admin/clientes" class="hover:underline">Adm Clientes</a></li>
     <li><a href="#/admin/ventas" class="hover:underline">Adm Ventas</a></li>
-    <li><a href="#/admin/carrito" class="hover:underline">Adm Carrito</a></li>
     <li><a href="#/admin/reportes" class="hover:underline">Reportes</a></li>
   `;
 
