@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const SECRET_KEY = "IkN5IPS8KhXGa&-RnR}eX)RS~Cy}8R";
+const SECRET_KEY = process.env.SECRET_KEY || 'pepito123';
 const validateToken = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const headerToken = req.headers['authorization'];
     if (headerToken != undefined && headerToken.startsWith('Bearer ')) {

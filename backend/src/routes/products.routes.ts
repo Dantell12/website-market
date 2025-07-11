@@ -10,10 +10,10 @@ import validateToken from "../middleware/validateToken";
 
 const router = Router();
 
-router.get("/",            validateToken, getProducts);
-router.get("/:id",         validateToken, getProductById);
-router.post("/",           validateToken, postProduct);
-router.put("/:id",         validateToken, updateProduct);
-router.delete("/:id",      validateToken, deleteProduct);
+router.get("/", getProducts);
+router.get("/:id", getProductById);
+router.post("/", postProduct);
+router.put("/:id", updateProduct);
+router.delete("/:id", deleteProduct);
 
 export default router;

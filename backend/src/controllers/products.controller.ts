@@ -1,19 +1,13 @@
-// src/controllers/product.controller.ts
-
 import { Request, Response, RequestHandler } from "express";
-import { ProductoModel } from "../models/products.model";
-import { Op } from "sequelize";
+import { Producto } from "../models/products.model";
 
 /**
  * Metodo getProducts
  * Devuelve lista de todos los productos
  */
-export const getProducts: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+export const getProducts: RequestHandler = async (req, res) => {
   try {
-    const list = await ProductoModel.findAll();
+    const list = await Producto.find();
     if (list.length > 0) {
       res.json(list);
     } else {
@@ -33,13 +27,10 @@ export const getProducts: RequestHandler = async (
  * Metodo getProductById
  * Devuelve un producto por su ID
  */
-export const getProductById: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+export const getProductById: RequestHandler = async (req, res) => {
   const { id } = req.params;
   try {
-    const product = await ProductoModel.findByPk(id);
+    const product = await Producto.findById(id);
     if (product) {
       res.json(product);
     } else {
@@ -59,13 +50,9 @@ export const getProductById: RequestHandler = async (
  * Metodo postProduct
  * Crea un nuevo producto
  */
-export const postProduct: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+export const postProduct: RequestHandler = async (req, res) => {
   try {
-    const { codigo, nombre, categoria, precio, stock, temporada, img } =
-      req.body;
+    const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
 
     // Validar campos obligatorios
     if (
@@ -76,20 +63,22 @@ export const postProduct: RequestHandler = async (
       stock == null ||
       !temporada
     ) {
-      res.status(400).json({
+       res.status(400).json({
         msg: "Faltan datos obligatorios: código, nombre, categoría, precio, stock o temporada",
       });
+      return;
     }
 
     // Verificar unicidad de código
-    const exists = await ProductoModel.findOne({ where: { codigo } });
+    const exists = await Producto.findOne({ codigo });
     if (exists) {
-      res.status(400).json({
+       res.status(400).json({
         msg: `El código ${codigo} ya está registrado`,
       });
+      return;
     }
 
-    const newProduct = await ProductoModel.create({
+    const newProduct = new Producto({
       codigo,
       nombre,
       categoria,
@@ -97,7 +86,10 @@ export const postProduct: RequestHandler = async (
       stock,
       temporada,
       img,
+      creado_en: new Date(),
     });
+
+    await newProduct.save();
 
     res.status(201).json({
       msg: "Producto creado correctamente",
@@ -115,42 +107,39 @@ export const postProduct: RequestHandler = async (
  * Metodo updateProduct
  * Actualiza un producto existente
  */
-export const updateProduct: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+export const updateProduct: RequestHandler = async (req, res) => {
   const { id } = req.params;
   const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
 
   try {
-    const product = await ProductoModel.findByPk(id);
+    const product = await Producto.findById(id);
     if (!product) {
-      res.status(404).json({
+       res.status(404).json({
         msg: `No existe un producto con id: ${id}`,
       });
       return;
     }
 
     // Si cambia el código, verificar que no choque con otro
-    if (codigo && codigo !== product.get("codigo")) {
-      const codeExists = await ProductoModel.findOne({ where: { codigo } });
+    if (codigo && codigo !== product.codigo) {
+      const codeExists = await Producto.findOne({ codigo });
       if (codeExists) {
-        res.status(400).json({
+         res.status(400).json({
           msg: `El código ${codigo} ya está registrado en otro producto`,
         });
+        return;
       }
     }
 
-    await product.update({
-      codigo: codigo ?? product.get("codigo"),
-      nombre: nombre ?? product.get("nombre"),
-      categoria: categoria ?? product.get("categoria"),
-      precio: precio ?? product.get("precio"),
-      stock: stock ?? product.get("stock"),
-      temporada: temporada ?? product.get("temporada"),
-      img: img ?? product.get("img"),
-      // creado_en no lo tocamos
-    });
+    product.codigo = codigo ?? product.codigo;
+    product.nombre = nombre ?? product.nombre;
+    product.categoria = categoria ?? product.categoria;
+    product.precio = precio ?? product.precio;
+    product.stock = stock ?? product.stock;
+    product.temporada = temporada ?? product.temporada;
+    product.img = img ?? product.img;
+
+    await product.save();
 
     res.json({
       msg: "Producto actualizado correctamente",
@@ -168,19 +157,15 @@ export const updateProduct: RequestHandler = async (
  * Metodo deleteProduct
  * Elimina físicamente un producto
  */
-export const deleteProduct: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+export const deleteProduct: RequestHandler = async (req, res) => {
   const { id } = req.params;
   try {
-    const deletedCount = await ProductoModel.destroy({
-      where: { id_producto: id },
-    });
-    if (deletedCount === 0) {
-      res.status(404).json({
+    const deleted = await Producto.findByIdAndDelete(id);
+    if (!deleted) {
+     res.status(404).json({
         msg: `No existe un producto con id: ${id}`,
       });
+      return;
     }
     res.json({
       msg: "Producto eliminado correctamente",

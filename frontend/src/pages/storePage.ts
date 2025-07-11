@@ -5,17 +5,16 @@ import { ProductCard } from "../components/productCard";
 import type { ProductInterface } from "../interfaces/product.interface";
 import { addProductToCart } from "../services/cart.service";
 import { getAllProducts } from "../services/product.service";
-
 async function addToCart(prod: ProductInterface) {
-  const id_cliente = Number(localStorage.getItem("id_cliente"));
+  const id_cliente = localStorage.getItem("id");
   const cantidad = 1;
 
-  if (!id_cliente) {
+  if (!id_cliente || id_cliente === "null") {
     alert("Debes iniciar sesión para agregar productos al carrito.");
     return;
   }
 
-  const result = await addProductToCart(id_cliente, prod.id_producto, cantidad);
+  const result = await addProductToCart(id_cliente, prod._id, cantidad);
 
   if (result.success) {
     alert(`"${prod.nombre}" agregado al carrito.`);

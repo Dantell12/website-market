@@ -1,6 +1,4 @@
-// src/services/reportService.ts
-
-import axios from "../axios.config";
+import api from "../axios.config";
 import type {
   AbandonedCart,
   FrequentCustomer,
@@ -9,13 +7,12 @@ import type {
   UnsoldProduct,
 } from "../interfaces/reports.interface";
 
-// Base URL de tu backend
-const API_URL = "http://localhost:1880";
+const API_URL = "/reports";
 
 // 1) Obtener todas las ventas
 export const getAllSales = async (): Promise<any[] | null> => {
   try {
-    const { data } = await axios.get<any[]>(`${API_URL}/api/reports`);
+    const { data } = await api.get<any[]>(`${API_URL}`);
     return data;
   } catch (error) {
     console.error("Error al listar todas las ventas:", error);
@@ -26,8 +23,8 @@ export const getAllSales = async (): Promise<any[] | null> => {
 // 2) Obtener el total vendido
 export const getTotalRevenue = async (): Promise<number | null> => {
   try {
-    const { data } = await axios.get<{ totalVendido: number }>(
-      `${API_URL}/api/reports/total`
+    const { data } = await api.get<{ totalVendido: number }>(
+      `${API_URL}/total`
     );
     return data.totalVendido;
   } catch (error) {
@@ -39,8 +36,8 @@ export const getTotalRevenue = async (): Promise<number | null> => {
 // 3) Ingresos por temporada
 export const getIncomeBySeason = async (): Promise<IncomeBySeason[] | null> => {
   try {
-    const { data } = await axios.get<IncomeBySeason[]>(
-      `${API_URL}/api/reports/temporada`
+    const { data } = await api.get<IncomeBySeason[]>(
+      `${API_URL}/temporada`
     );
     return data;
   } catch (error) {
@@ -52,8 +49,8 @@ export const getIncomeBySeason = async (): Promise<IncomeBySeason[] | null> => {
 // 4) Reporte de productos con estado, descuento y alerta de stock
 export const getProductReport = async (): Promise<ProductReport[] | null> => {
   try {
-    const { data } = await axios.get<ProductReport[]>(
-      `${API_URL}/api/reports/productos`
+    const { data } = await api.get<ProductReport[]>(
+      `${API_URL}/productos`
     );
     return data;
   } catch (error) {
@@ -67,8 +64,8 @@ export const getFrequentCustomers = async (
   minCompras: number = 1
 ): Promise<FrequentCustomer[] | null> => {
   try {
-    const { data } = await axios.get<FrequentCustomer[]>(
-      `${API_URL}/api/reports/clientes-frecuentes?minCompras=${minCompras}`
+    const { data } = await api.get<FrequentCustomer[]>(
+      `${API_URL}/clientes-frecuentes?minCompras=${minCompras}`
     );
     return data;
   } catch (error) {
@@ -77,11 +74,10 @@ export const getFrequentCustomers = async (
   }
 };
 
-
 export const getUnsoldProducts = async (): Promise<UnsoldProduct[] | null> => {
   try {
-    const { data } = await axios.get<UnsoldProduct[]>(
-      `${API_URL}/api/reports/productos-no-vendidos`
+    const { data } = await api.get<UnsoldProduct[]>(
+      `${API_URL}/productos-no-vendidos`
     );
     return data;
   } catch (error) {
@@ -93,8 +89,8 @@ export const getUnsoldProducts = async (): Promise<UnsoldProduct[] | null> => {
 // 7) Reporte de carritos abandonados
 export const getAbandonedCarts = async (): Promise<AbandonedCart[] | null> => {
   try {
-    const { data } = await axios.get<AbandonedCart[]>(
-      `${API_URL}/api/reports/carritos-abandonados`
+    const { data } = await api.get<AbandonedCart[]>(
+      `${API_URL}/carritos-abandonados`
     );
     return data;
   } catch (error) {

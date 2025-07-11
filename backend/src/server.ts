@@ -1,3 +1,5 @@
-import app from "./server/app";
+// src/server/server.ts
+import App from "./server/app";
 
-const server = new app();
+// Instancio mi clase App; el constructor ya monta todo y hace .listen()
+new App();

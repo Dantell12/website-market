@@ -1,12 +1,19 @@
-import { Sequelize } from "sequelize";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 dotenv.config();
 
+const mongoURI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/market";
 
-const sequelize = new Sequelize("marketplace", "postgres", "admin123", {
-  host: "localhost",
-  dialect: "postgres",
-  port: 5432,
-});
+mongoose.set("strictQuery", true);
 
-export default sequelize;
+const connectDB = async () => {
+  try {
+    await mongoose.connect(mongoURI);
+    console.log("✅ Conectado a MongoDB");
+  } catch (error) {
+    console.error("❌ Error conectando a MongoDB:", error);
+    process.exit(1);
+  }
+};
+
+export default connectDB;

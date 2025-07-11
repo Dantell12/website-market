@@ -13,12 +13,12 @@ import validateToken from "../middleware/validateToken";
 const router = Router();
 
 // 👉 Rutas protegidas (solo admin)
-router.get("/", validateToken, getAllSales);
-router.get("/total", validateToken, getTotalRevenue);
-router.get("/temporada", validateToken, getIncomeBySeason);
-router.get("/productos", validateToken, getProductReport);
-router.get("/clientes-frecuentes", validateToken, getFrequentCustomers);
-router.get("/productos-no-vendidos", validateToken, getUnsoldProducts);
-router.get("/carritos-abandonados", validateToken, getAbandonedCarts);
+router.get("/",  getAllSales);
+router.get("/total",  getTotalRevenue);
+router.get("/temporada",  getIncomeBySeason);
+router.get("/productos",  getProductReport);
+router.get("/clientes-frecuentes",  getFrequentCustomers);
+router.get("/productos-no-vendidos",  getUnsoldProducts);
+router.get("/carritos-abandonados",  getAbandonedCarts);
 
 export default router;

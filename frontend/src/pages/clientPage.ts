@@ -46,11 +46,11 @@ export function AdminClientesPage(containerId: string) {
 
     const rows = clients.map((c, idx) => /* html */`
       <tr class="hover:bg-gray-50 transition">
-        <td class="px-4 py-2 text-center">${c.id_cliente}</td>
-        <td class="px-4 py-2">${c.nombre}</td>
-        <td class="px-4 py-2">${c.apellido}</td>
-        <td class="px-4 py-2">${c.cedula}</td>
-        <td class="px-4 py-2">${c.direccion || ""}</td>
+        <td class="px-4 py-2 text-center">${c._id}</td>
+        <td class="px-4 py-2">${c.cliente.nombre}</td>
+        <td class="px-4 py-2">${c.cliente.apellido}</td>
+        <td class="px-4 py-2">${c.cliente.cedula}</td>
+        <td class="px-4 py-2">${c.cliente.direccion || ""}</td>
         <td class="px-4 py-2 text-center space-x-2">
           <button data-idx="${idx}" class="edit-btn inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white py-1 px-3 rounded text-sm">
             <i class="fas fa-edit"></i> Editar
@@ -87,7 +87,7 @@ export function AdminClientesPage(containerId: string) {
       btn.addEventListener("click", async () => {
         const idx = Number(btn.dataset.idx);
         if (confirm("¿Eliminar este cliente?")) {
-          await deleteClient(clients[idx].id_cliente);
+          await deleteClient(clients[idx]._id);
           loadTable();
         }
       })

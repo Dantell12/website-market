@@ -1,6 +1,6 @@
 import { Request , Response , NextFunction } from "express"
 import jwt from "jsonwebtoken"
-const SECRET_KEY = "IkN5IPS8KhXGa&-RnR}eX)RS~Cy}8R";
+const SECRET_KEY = process.env.SECRET_KEY|| 'pepito123';
 const validateToken = async ( req : Request , res : Response, next : NextFunction) =>{
     const headerToken = req.headers['authorization'];
     if (headerToken != undefined && headerToken.startsWith('Bearer ')) {

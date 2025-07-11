@@ -14,60 +14,54 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const conection_1 = __importDefault(require("../config/conection"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+const conection_1 = __importDefault(require("../config/conection"));
 const user_routes_1 = __importDefault(require("../routes/user.routes"));
 const client_routes_1 = __importDefault(require("../routes/client.routes"));
 const products_routes_1 = __importDefault(require("../routes/products.routes"));
-const cart_routes_1 = __importDefault(require("../routes/cart.routes"));
-const sales_routes_1 = __importDefault(require("../routes/sales.routes"));
 const reports_routes_1 = __importDefault(require("../routes/reports.routes"));
-class app {
+const cart_routes_1 = __importDefault(require("../routes/cart.routes"));
+class App {
     constructor() {
         this.app = (0, express_1.default)();
         this.port = process.env.PORT || "1880";
-        this.listen();
-        this.midlewares();
-        this.routes();
-        this.backendConnect();
-    }
-    listen() {
-        this.app.listen(this.port, () => {
-            console.log("Servicio de Red/es corriendo en el puerto: " + this.port);
+        this.middlewares();
+        this.connectDatabase()
+            .then(() => {
+            this.routes();
+            this.listen();
+        })
+            .catch(err => {
+            console.error("❌ Falló la conexión a MongoDB:", err);
         });
     }
-    routes() {
-        /**
-         * Route backend User
-         */
-        this.app.use("/api/users", user_routes_1.default);
-        this.app.use("/api/clients", client_routes_1.default);
-        this.app.use("/api/products", products_routes_1.default);
-        this.app.use("/api/carts", cart_routes_1.default);
-        this.app.use("/api/sales", sales_routes_1.default);
-        this.app.use("/api/reports", reports_routes_1.default);
+    connectDatabase() {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("⏳ Iniciando conexión a MongoDB...");
+            yield (0, conection_1.default)();
+            console.log("✅ MongoDB conectado.");
+        });
     }
-    midlewares() {
+    middlewares() {
         this.app.use(express_1.default.json());
-        //cors
         this.app.use((0, cors_1.default)({
-            origin: ["http://localhost:5173"], // o tu dominio
+            origin: ["http://localhost:5173"],
             allowedHeaders: ["Content-Type", "Authorization"],
             exposedHeaders: ["Authorization"],
         }));
     }
-    backendConnect() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                yield conection_1.default.authenticate();
-                console.log("\n", "\x1b[32m", "CONNECTION WITH THE DATABASE WORKING", "\x1b[0m", "\n");
-                console.log("\n", "\x1b[32m", "BACKEND NETWORK SERVICES FROM iCONTROL IS WORKING!", "\x1b[0m", "\n");
-            }
-            catch (error) {
-                console.error("\n", "\x1b[31m", "BACKEND NETWORK SERVICES FROM iCONTROL FAILED TO START!: ", error, "\x1b[0m", "\n");
-            }
+    routes() {
+        this.app.use("/api/users", user_routes_1.default);
+        this.app.use("/api/clients", client_routes_1.default);
+        this.app.use("/api/products", products_routes_1.default);
+        this.app.use("/api/reports", reports_routes_1.default);
+        this.app.use("/api/cart", cart_routes_1.default);
+    }
+    listen() {
+        this.app.listen(this.port, () => {
+            console.log(`🚀 API corriendo en http://localhost:${this.port}`);
         });
     }
 }
-exports.default = app;
+exports.default = App;

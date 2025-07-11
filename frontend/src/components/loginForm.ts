@@ -41,15 +41,17 @@ export function LoginForm(onLogin: (rol: string) => void) {
     if (result?.token) {
       // Guardar token y rol
       localStorage.setItem("token", result.token);
+      console.log("Token guardado:", result.token);
       localStorage.setItem("rol", result.user.rol);
-      localStorage.setItem("id", result.user.id_usuario.toString());
+      localStorage.setItem("id", result.user.id); // <-- ahora es 'id'
       localStorage.setItem("email", result.user.email);
-      if (
-        result.user.id_cliente !== undefined &&
-        result.user.id_cliente !== null
-      ) {
-        localStorage.setItem("id_cliente", result.user.id_cliente.toString());
+
+      // Si es cliente, guarda los datos de cliente en localStorage (opcional)
+      if (result.user.rol === "cliente" && result.user.cliente) {
+        // Puedes guardar los datos de cliente como string JSON si los necesitas luego
+        localStorage.setItem("cliente", JSON.stringify(result.user.cliente));
       }
+
       onLogin(result.user.rol);
     } else {
       alert("Credenciales incorrectas");

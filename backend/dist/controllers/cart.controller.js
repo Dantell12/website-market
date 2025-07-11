@@ -10,194 +10,167 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateCartProduct = exports.removeProductFromCart = exports.listCartProducts = exports.addProductToCart = void 0;
-const products_model_1 = require("../models/products.model");
-const product_carts_model_1 = require("../models/product_carts.model");
 const carts_model_1 = require("../models/carts.model");
+const products_model_1 = require("../models/products.model");
 const calculates_1 = require("../utils/calculates");
+const mongoose_1 = require("mongoose");
+// 1. Agregar producto al carrito
 const addProductToCart = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id_cliente, id_producto, cantidad } = req.body;
-    console.log(id_cliente);
     try {
-        // 1. Verificar si existe un carrito ACTIVO del cliente
-        let carrito = yield carts_model_1.CarritoModel.findOne({
-            where: { id_cliente, estado: "activo" },
+        const clienteId = new mongoose_1.Types.ObjectId(id_cliente);
+        const productoId = new mongoose_1.Types.ObjectId(id_producto);
+        // 1. Buscar o crear carrito activo
+        let carrito = yield carts_model_1.Carrito.findOne({
+            id_cliente: clienteId,
+            estado: "activo",
         });
-        console.log(carrito);
-        // 2. Si no existe, crear uno
         if (!carrito) {
-            carrito = yield carts_model_1.CarritoModel.create({
-                id_cliente,
+            carrito = yield carts_model_1.Carrito.create({
+                id_cliente: clienteId,
                 estado: "activo",
+                fecha: new Date(),
+                productos: [],
             });
         }
-        const idCarrito = carrito.get("id_carrito");
-        const existente = yield product_carts_model_1.CarritoProductoModel.findOne({
-            where: { id_carrito: idCarrito, id_producto },
-        });
-        if (existente) {
-            res.status(400).json({ msg: "El producto ya está agregado al carrito" });
+        // 2. Verificar duplicado
+        if (carrito.productos.some((p) => p.id_producto.equals(productoId))) {
+            res.status(400).json({ msg: "El producto ya está en el carrito" });
             return;
         }
-        // 3. Buscar el producto
-        const producto = yield products_model_1.ProductoModel.findByPk(id_producto);
+        // 3. Buscar producto y verificar stock
+        const producto = yield products_model_1.Producto.findById(productoId);
         if (!producto) {
             res.status(404).json({ msg: "Producto no encontrado" });
             return;
         }
-        const stock = producto.get("stock");
-        // 4. Validar si hay suficiente stock
-        if (stock < cantidad) {
-            res
-                .status(400)
-                .json({ msg: "Stock insuficiente para agregar al carrito" });
+        if (producto.stock < cantidad) {
+            res.status(400).json({ msg: "Stock insuficiente" });
             return;
         }
-        // 5. Calcular precios (descuento e impuesto)
+        // 4. Calcular precios
         const { precioConDescuento, impuesto, subtotal } = (0, calculates_1.calcularPrecioFinal)(producto, cantidad);
-        // 6. Agregar producto al carrito
-        const item = yield product_carts_model_1.CarritoProductoModel.create({
-            id_carrito: carrito.get("id_carrito"),
-            id_producto,
-            cantidad,
+        carrito.productos.push({
+            id_producto: productoId,
+            cantidad: parseInt(cantidad, 10),
             precio_unitario: precioConDescuento,
-            impuesto,
-            subtotal,
+            impuesto: typeof impuesto === "number" ? impuesto : 0,
+            subtotal: typeof subtotal === "number" ? subtotal : 0,
         });
+        yield carrito.save();
         res.status(201).json({
             msg: "Producto agregado al carrito",
-            item,
-            id_carrito: carrito.get("id_carrito"),
+            carrito,
         });
+        return;
     }
     catch (err) {
-        console.error(err);
+        console.error("Error al agregar producto al carrito:", err);
         res.status(500).json({ msg: "Error al agregar producto al carrito" });
+        return;
     }
 });
 exports.addProductToCart = addProductToCart;
-// 2. Listar productos del carrito
+// 2. Listar productos del carrito activo del cliente
 const listCartProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id_cliente } = req.params;
     try {
-        const clienteId = parseInt(id_cliente);
-        if (isNaN(clienteId)) {
-            res.status(400).json({ msg: "ID de cliente inválido" });
-            return;
-        }
-        // 1. Buscar carrito ACTIVO del cliente
-        const carrito = yield carts_model_1.CarritoModel.findOne({
-            where: { id_cliente: clienteId, estado: "activo" },
-        });
+        const clienteId = new mongoose_1.Types.ObjectId(id_cliente);
+        const carrito = yield carts_model_1.Carrito.findOne({
+            id_cliente: clienteId,
+            estado: "activo",
+        }).populate("productos.id_producto");
         if (!carrito) {
             res.status(404).json({ msg: "Carrito no encontrado o inactivo" });
             return;
         }
-        const idCarrito = carrito.get("id_carrito");
-        // 2. Buscar productos del carrito
-        const carritoProductos = yield product_carts_model_1.CarritoProductoModel.findAll({
-            where: { id_carrito: idCarrito },
-        });
-        // Obtener todos los id_producto para la consulta
-        const idsProductos = carritoProductos.map((item) => item.get("id_producto"));
-        // 3. Buscar detalles de productos
-        const productos = yield products_model_1.ProductoModel.findAll({
-            where: { id_producto: idsProductos },
-        });
-        // 4. Combinar datos
-        const respuesta = carritoProductos.map((item) => {
-            const producto = productos.find((p) => p.get("id_producto") === item.get("id_producto"));
-            return Object.assign(Object.assign({}, item.toJSON()), { producto: producto ? producto.toJSON() : null });
-        });
-        res.json(respuesta);
+        res.json(carrito.productos);
+        return;
     }
-    catch (error) {
-        console.error("Error al listar productos del carrito:", error);
+    catch (err) {
+        console.error("Error al listar productos del carrito:", err);
         res.status(500).json({ msg: "Error al listar productos del carrito" });
+        return;
     }
 });
 exports.listCartProducts = listCartProducts;
 // 3. Eliminar un producto del carrito activo
 const removeProductFromCart = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const id_cliente = parseInt(req.params.id_cliente, 10);
-    const id_producto = parseInt(req.params.id_producto, 10);
+    const { id_cliente, id_producto } = req.params;
     try {
-        // 1. Buscar carrito ACTIVO del cliente
-        const carrito = yield carts_model_1.CarritoModel.findOne({
-            where: { id_cliente, estado: "activo" },
+        const clienteId = new mongoose_1.Types.ObjectId(id_cliente);
+        const productoId = new mongoose_1.Types.ObjectId(id_producto);
+        const carrito = yield carts_model_1.Carrito.findOne({
+            id_cliente: clienteId,
+            estado: "activo",
         });
         if (!carrito) {
             res.status(404).json({ msg: "Carrito no encontrado o inactivo" });
             return;
         }
-        const idCarrito = carrito.get("id_carrito");
-        // 2. Buscar el item en carrito_productos
-        const item = yield product_carts_model_1.CarritoProductoModel.findOne({
-            where: { id_carrito: idCarrito, id_producto },
-        });
-        if (!item) {
+        const idx = carrito.productos.findIndex((p) => p.id_producto.equals(productoId));
+        if (idx === -1) {
             res.status(404).json({ msg: "El producto no está en el carrito" });
             return;
         }
-        // 3. Eliminar el item
-        yield item.destroy();
+        carrito.productos.splice(idx, 1);
+        yield carrito.save();
         res.json({ msg: "Producto eliminado del carrito" });
+        return;
     }
     catch (err) {
-        console.error(err);
+        console.error("Error al eliminar producto del carrito:", err);
         res.status(500).json({ msg: "Error al eliminar producto del carrito" });
+        return;
     }
 });
 exports.removeProductFromCart = removeProductFromCart;
-/**
- * PUT /api/carts/update-product
- * Actualiza la cantidad de un producto en el carrito activo del cliente
- * Body: { id_cliente, id_producto, cantidad }
- */
+// 4. Actualizar cantidad de un producto en el carrito activo
 const updateCartProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // Extraemos de params en lugar de body
-    const id_cliente = parseInt(req.params.id_cliente, 10);
-    const id_producto = parseInt(req.params.id_producto, 10);
-    const cantidad = parseInt(req.params.cantidad, 10);
     try {
-        // Verificar carrito activo
-        const carrito = yield carts_model_1.CarritoModel.findOne({
-            where: { id_cliente, estado: "activo" },
-        });
-        if (!carrito) {
-            res.status(404).json({ msg: "Carrito no encontrado o ya confirmado" });
+        // 1) Extraer todo de params
+        const { id_cliente, id_producto, cantidad: cantidadParam } = req.params;
+        // 2) Parsear cantidad a número
+        const cantidad = Math.floor(cantidadParam);
+        if (isNaN(cantidad) || cantidad < 1) {
+            res.status(400).json({ msg: "Cantidad inválida" });
             return;
         }
-        const idCarrito = carrito.get("id_carrito");
-        // Buscar el item en carrito_productos
-        const item = yield product_carts_model_1.CarritoProductoModel.findOne({
-            where: { id_carrito: idCarrito, id_producto },
+        const clienteId = new mongoose_1.Types.ObjectId(id_cliente);
+        const productoId = new mongoose_1.Types.ObjectId(id_producto);
+        // 3) Buscar carrito activo
+        const carrito = yield carts_model_1.Carrito.findOne({
+            id_cliente: clienteId,
+            estado: "activo",
         });
+        if (!carrito) {
+            res.status(404).json({ msg: "Carrito no encontrado o inactivo" });
+            return;
+        }
+        // 4) Buscar el item en el carrito
+        const item = carrito.productos.find((p) => p.id_producto.equals(productoId));
         if (!item) {
             res.status(404).json({ msg: "El producto no está en el carrito" });
             return;
         }
-        // 3️⃣ Buscar datos del producto original
-        const producto = yield products_model_1.ProductoModel.findByPk(id_producto);
+        // 5) Verificar stock
+        const producto = yield products_model_1.Producto.findById(productoId);
         if (!producto) {
             res.status(404).json({ msg: "Producto no encontrado" });
             return;
         }
-        const stock = producto.get("stock");
-        if (stock < cantidad) {
-            res
-                .status(400)
-                .json({ msg: "Stock insuficiente para la cantidad solicitada" });
+        if (producto.stock < cantidad) {
+            res.status(400).json({ msg: "Stock insuficiente" });
             return;
         }
-        //  Recalcular precios con la nueva cantidad
+        // 6) Recalcular precios
         const { precioConDescuento, impuesto, subtotal } = (0, calculates_1.calcularPrecioFinal)(producto, cantidad);
-        // 5️⃣ Actualizar el registro en carrito_productos
-        yield item.update({
-            cantidad,
-            precio_unitario: precioConDescuento,
-            impuesto,
-            subtotal,
-        });
+        item.cantidad = cantidad;
+        item.precio_unitario = precioConDescuento;
+        item.impuesto = impuesto;
+        item.subtotal = subtotal;
+        // 7) Guardar
+        yield carrito.save();
         res.json({
             msg: "Cantidad actualizada correctamente",
             item,

@@ -1,7 +1,8 @@
 import type { ProductInterface, Temporada } from "../interfaces/product.interface";
-import api from "../axios.config";    // <–– aquí importas la instancia
+import api from "../axios.config";
 
-const API_URL = "http://localhost:1880/api/products";
+
+const API_URL = "/products";
 
 export const getAllProducts = async (): Promise<ProductInterface[] | null> => {
   try {
@@ -14,7 +15,7 @@ export const getAllProducts = async (): Promise<ProductInterface[] | null> => {
 };
 
 export const getProductById = async (
-  id: number
+  id: string
 ): Promise<ProductInterface | null> => {
   try {
     const { data } = await api.get<ProductInterface>(`${API_URL}/${id}`);
@@ -48,7 +49,7 @@ export const createProduct = async (
 };
 
 export const updateProduct = async (
-  id: number,
+  id: string,
   product: Partial<CreateProductDTO>
 ): Promise<ProductInterface | null> => {
   try {
@@ -63,7 +64,7 @@ export const updateProduct = async (
   }
 };
 
-export const deleteProduct = async (id: number): Promise<boolean> => {
+export const deleteProduct = async (id: string): Promise<boolean> => {
   try {
     await api.delete(`${API_URL}/${id}`);
     return true;

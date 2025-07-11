@@ -1,5 +1,4 @@
 "use strict";
-// src/controllers/product.controller.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -18,7 +17,7 @@ const products_model_1 = require("../models/products.model");
  */
 const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const list = yield products_model_1.ProductoModel.findAll();
+        const list = yield products_model_1.Producto.find();
         if (list.length > 0) {
             res.json(list);
         }
@@ -43,7 +42,7 @@ exports.getProducts = getProducts;
 const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     try {
-        const product = yield products_model_1.ProductoModel.findByPk(id);
+        const product = yield products_model_1.Producto.findById(id);
         if (product) {
             res.json(product);
         }
@@ -78,15 +77,17 @@ const postProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             res.status(400).json({
                 msg: "Faltan datos obligatorios: código, nombre, categoría, precio, stock o temporada",
             });
+            return;
         }
         // Verificar unicidad de código
-        const exists = yield products_model_1.ProductoModel.findOne({ where: { codigo } });
+        const exists = yield products_model_1.Producto.findOne({ codigo });
         if (exists) {
             res.status(400).json({
                 msg: `El código ${codigo} ya está registrado`,
             });
+            return;
         }
-        const newProduct = yield products_model_1.ProductoModel.create({
+        const newProduct = new products_model_1.Producto({
             codigo,
             nombre,
             categoria,
@@ -94,7 +95,9 @@ const postProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             stock,
             temporada,
             img,
+            creado_en: new Date(),
         });
+        yield newProduct.save();
         res.status(201).json({
             msg: "Producto creado correctamente",
             product: newProduct,
@@ -116,7 +119,7 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     const { id } = req.params;
     const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
     try {
-        const product = yield products_model_1.ProductoModel.findByPk(id);
+        const product = yield products_model_1.Producto.findById(id);
         if (!product) {
             res.status(404).json({
                 msg: `No existe un producto con id: ${id}`,
@@ -124,24 +127,23 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Si cambia el código, verificar que no choque con otro
-        if (codigo && codigo !== product.get("codigo")) {
-            const codeExists = yield products_model_1.ProductoModel.findOne({ where: { codigo } });
+        if (codigo && codigo !== product.codigo) {
+            const codeExists = yield products_model_1.Producto.findOne({ codigo });
             if (codeExists) {
                 res.status(400).json({
                     msg: `El código ${codigo} ya está registrado en otro producto`,
                 });
+                return;
             }
         }
-        yield product.update({
-            codigo: codigo !== null && codigo !== void 0 ? codigo : product.get("codigo"),
-            nombre: nombre !== null && nombre !== void 0 ? nombre : product.get("nombre"),
-            categoria: categoria !== null && categoria !== void 0 ? categoria : product.get("categoria"),
-            precio: precio !== null && precio !== void 0 ? precio : product.get("precio"),
-            stock: stock !== null && stock !== void 0 ? stock : product.get("stock"),
-            temporada: temporada !== null && temporada !== void 0 ? temporada : product.get("temporada"),
-            img: img !== null && img !== void 0 ? img : product.get("img"),
-            // creado_en no lo tocamos
-        });
+        product.codigo = codigo !== null && codigo !== void 0 ? codigo : product.codigo;
+        product.nombre = nombre !== null && nombre !== void 0 ? nombre : product.nombre;
+        product.categoria = categoria !== null && categoria !== void 0 ? categoria : product.categoria;
+        product.precio = precio !== null && precio !== void 0 ? precio : product.precio;
+        product.stock = stock !== null && stock !== void 0 ? stock : product.stock;
+        product.temporada = temporada !== null && temporada !== void 0 ? temporada : product.temporada;
+        product.img = img !== null && img !== void 0 ? img : product.img;
+        yield product.save();
         res.json({
             msg: "Producto actualizado correctamente",
             product,
@@ -162,13 +164,12 @@ exports.updateProduct = updateProduct;
 const deleteProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     try {
-        const deletedCount = yield products_model_1.ProductoModel.destroy({
-            where: { id_producto: id },
-        });
-        if (deletedCount === 0) {
+        const deleted = yield products_model_1.Producto.findByIdAndDelete(id);
+        if (!deleted) {
             res.status(404).json({
                 msg: `No existe un producto con id: ${id}`,
             });
+            return;
         }
         res.json({
             msg: "Producto eliminado correctamente",

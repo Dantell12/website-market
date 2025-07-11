@@ -1,19 +1,13 @@
 import { Router } from "express";
-import {
-  getClient,
-  getClientById,
-  postClient,
-  updateClient,
-  deleteClient,
-} from "../controllers/client.controller";
+
 import validateToken from "../middleware/validateToken";
+import { deleteClient, getClientById, getClients, updateClient } from "../controllers/client.controller";
 
 
 const router = Router();
 
-router.get("/", validateToken,getClient);
+router.get("/", validateToken,getClients);
 router.get("/:id",validateToken, getClientById);
-router.post("/", validateToken,postClient);
 router.put("/:id",validateToken,  updateClient);
 router.delete("/:id",validateToken, deleteClient);
 

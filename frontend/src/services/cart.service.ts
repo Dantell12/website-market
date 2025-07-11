@@ -1,39 +1,32 @@
+// src/services/cart.service.ts
 import api from "../axios.config";
 import type { CartItemInterface } from "../interfaces/cart-item.interface";
 
-const API_URL = "http://localhost:1880/api/carts";
+const API_URL = "/cart";
 
 // Agregar producto al carrito
 export const addProductToCart = async (
-  id_cliente: number,
-  id_producto: number,
+  id_cliente: string,
+  id_producto: string,
   cantidad: number
 ): Promise<{ success: boolean; msg: string }> => {
-  console.log(id_cliente);
   try {
     const { data } = await api.post(`${API_URL}/agregar-producto`, {
       id_cliente,
       id_producto,
       cantidad,
     });
-    // data.msg es "Producto agregado al carrito"
     return { success: true, msg: data.msg };
   } catch (error: any) {
-    const msg =
-      error.response?.data?.msg || "Error al agregar producto al carrito.";
-    return { success: false, msg };
+    return { success: false, msg: error.response?.data?.msg ?? "Error" };
   }
 };
 
 // Listar productos del carrito
-export const listCartProducts = async (): Promise<
-  CartItemInterface[] | null
-> => {
+export const listCartProducts = async (): Promise<CartItemInterface[] | null> => {
   try {
-    const id_cliente = Number(localStorage.getItem("id_cliente"));
-    if (!id_cliente) {
-      throw new Error("ID de cliente no encontrado en localStorage");
-    }
+    const id_cliente = localStorage.getItem("id");           // <-- string
+    if (!id_cliente) throw new Error("Cliente no autenticado");
 
     const { data } = await api.get<CartItemInterface[]>(
       `${API_URL}/listar-productos/${id_cliente}`
@@ -44,26 +37,24 @@ export const listCartProducts = async (): Promise<
     return null;
   }
 };
+
 // Eliminar producto
 export const removeProductFromCart = async (
-  id_cliente: number,
-  id_producto: number
+  id_cliente: string,
+  id_producto: string
 ): Promise<boolean> => {
   try {
-    await api.delete(
-      `${API_URL}/eliminar-productos/${id_cliente}/${id_producto}`
-    );
+    await api.delete(`${API_URL}/eliminar-productos/${id_cliente}/${id_producto}`);
     return true;
   } catch {
-    console.error("Error al eliminar producto del carrito");
     return false;
   }
 };
 
 // Actualizar cantidad
 export const updateCartProduct = async (
-  id_cliente: number,
-  id_producto: number,
+  id_cliente: string,
+  id_producto: string,
   cantidad: number
 ): Promise<boolean> => {
   try {
@@ -72,7 +63,6 @@ export const updateCartProduct = async (
     );
     return true;
   } catch {
-    console.error("Error al actualizar producto en el carrito");
     return false;
   }
 };

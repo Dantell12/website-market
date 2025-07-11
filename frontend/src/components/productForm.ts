@@ -98,7 +98,7 @@ export class ProductForm {
 
     try {
       if (this.product) {
-        await updateProduct(this.product.id_producto, payload);
+        await updateProduct(this.product._id, payload);
       } else {
         await createProduct(payload);
       }

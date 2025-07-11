@@ -1,86 +1,61 @@
 import express from "express";
 import cors from "cors";
-import sequelize from "../config/conection";
 import dotenv from "dotenv";
 dotenv.config();
 
+import connectDB from "../config/conection";
 import userRouter from "../routes/user.routes";
 import clientRouter from "../routes/client.routes";
-import productRouter from "../routes/products.routes";
-import cartRouter from "../routes/cart.routes"
-import salesRoutes from "../routes/sales.routes"
-import reportsRoutes from "../routes/reports.routes"
-class app {
-  private app: express.Application;
+import productRouter from "../routes/products.routes"
+import reportsRouter from "../routes/reports.routes";
+import cartRouter from "../routes/cart.routes";
+export default class App {
+  public app: express.Application;
   private port: string;
 
   constructor() {
-    this.app = express();
+    this.app  = express();
     this.port = process.env.PORT || "1880";
-    this.listen();
-    this.midlewares();
-    this.routes();
-    this.backendConnect();
+
+    this.middlewares();
+    this.connectDatabase()
+      .then(() => {
+        this.routes();
+        this.listen();
+      })
+      .catch(err => {
+        console.error("❌ Falló la conexión a MongoDB:", err);
+      });
   }
 
-  listen() {
-    this.app.listen(this.port, () => {
-      console.log("Servicio de Red/es corriendo en el puerto: " + this.port);
-    });
+  private async connectDatabase() {
+    console.log("⏳ Iniciando conexión a MongoDB...");
+    await connectDB();
+    console.log("✅ MongoDB conectado.");
   }
-  routes() {
-    /**
-     * Route backend User
-     */
 
-    this.app.use("/api/users", userRouter);
-    this.app.use("/api/clients", clientRouter);
-    this.app.use("/api/products", productRouter);
-    this.app.use("/api/carts", cartRouter);
-    this.app.use("/api/sales", salesRoutes);
-    this.app.use("/api/reports", reportsRoutes);
-  }
-  midlewares() {
+  private middlewares() {
     this.app.use(express.json());
-
-    //cors
     this.app.use(
       cors({
-        origin: ["http://localhost:5173"], // o tu dominio
+        origin: ["http://localhost:5173"],
         allowedHeaders: ["Content-Type", "Authorization"],
         exposedHeaders: ["Authorization"],
       })
     );
   }
 
-  async backendConnect() {
-    try {
-      await sequelize.authenticate();
-      console.log(
-        "\n",
-        "\x1b[32m",
-        "CONNECTION WITH THE DATABASE WORKING",
-        "\x1b[0m",
-        "\n"
-      );
-      console.log(
-        "\n",
-        "\x1b[32m",
-        "BACKEND NETWORK SERVICES FROM iCONTROL IS WORKING!",
-        "\x1b[0m",
-        "\n"
-      );
-    } catch (error) {
-      console.error(
-        "\n",
-        "\x1b[31m",
-        "BACKEND NETWORK SERVICES FROM iCONTROL FAILED TO START!: ",
-        error,
-        "\x1b[0m",
-        "\n"
-      );
-    }
+  private routes() {
+    this.app.use("/api/users",   userRouter);
+    this.app.use("/api/clients", clientRouter);
+    this.app.use("/api/products", productRouter);
+    this.app.use("/api/reports", reportsRouter);
+    this.app.use("/api/cart", cartRouter);
+  }
+
+  private listen() {
+    this.app.listen(this.port, () => {
+      console.log(`🚀 API corriendo en http://localhost:${this.port}`);
+    });
   }
 }
-
-export default app;

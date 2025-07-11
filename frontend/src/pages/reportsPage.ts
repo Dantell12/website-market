@@ -1,4 +1,8 @@
 // src/pages/ReportsPage.ts
+// ...arriba del todo...
+let chartIncomeSeason: Chart | null = null;
+let chartProductStatus: Chart | null = null;
+
 import { Navbar } from "../components/navbar";
 import type {
   IncomeBySeason,
@@ -107,11 +111,15 @@ export async function ReportsPage(containerId: string) {
   const ingresos = incomeData.map((i: IncomeBySeason) =>
     parseFloat(String(i.ingresoTotal))
   );
-
-  const ctx1 = (
+const ctx1 = (
     document.getElementById("chart-income-season") as HTMLCanvasElement
   ).getContext("2d")!;
-  new Chart(ctx1, {
+
+  // DESTRUIR GRÁFICO ANTERIOR SI EXISTE
+  if (chartIncomeSeason) {
+    chartIncomeSeason.destroy();
+  }
+  chartIncomeSeason = new Chart(ctx1, {
     type: "bar",
     data: {
       labels: seasons,
@@ -149,7 +157,10 @@ export async function ReportsPage(containerId: string) {
   const ctx2 = (
     document.getElementById("chart-product-status") as HTMLCanvasElement
   ).getContext("2d")!;
-  new Chart(ctx2, {
+  if (chartProductStatus) {
+    chartProductStatus.destroy();
+  }
+  chartProductStatus = new Chart(ctx2, {
     type: "doughnut",
     data: {
       labels: estadosLabels,
@@ -229,7 +240,7 @@ export async function ReportsPage(containerId: string) {
               ? `${cliente.nombre} ${cliente.apellido}`
               : "Cliente desconocido";
             const fecha = new Date(ac.fecha).toISOString().split("T")[0];
-            return `<li>Carrito #${ac.id_carrito} – ${nombreCompleto} – Fecha: ${fecha}</li>`;
+            return `<li>Carrito #${ac._id} – ${nombreCompleto} – Fecha: ${fecha}</li>`;
           })
           .join("");
 }

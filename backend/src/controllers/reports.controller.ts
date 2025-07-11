@@ -1,106 +1,83 @@
-// src/controllers/reportes.controller.ts
-
 import { Request, Response, RequestHandler } from "express";
-import { Op, QueryTypes, Sequelize } from "sequelize";
-import { VentaModel } from "../models/sales.model";
-import { DetalleVentaModel } from "../models/detail_sales.model";
-import { ProductoModel } from "../models/products.model";
-import { ClienteModel } from "../models/clients.model";
-import { CarritoModel } from "../models/carts.model";
-import { CarritoProductoModel } from "../models/product_carts.model";
-import sequelize from "../config/conection";
+import { Venta } from "../models/sales.model";
+import { Usuario } from "../models/users.model";
+import { Producto } from "../models/products.model";
+import { Carrito } from "../models/carts.model";
 
-/**
- * 1) Obtener todas las ventas (lista básica)
- */
-export const getAllSales: RequestHandler = async (req, res) => {
+// 1) Obtener todas las ventas (lista básica)
+export const getAllSales: RequestHandler = async (_req, res) => {
   try {
-    const ventas = await VentaModel.findAll({
-      order: [["fecha", "DESC"]],
-      include: [
-        {
-          model: ClienteModel,
-          attributes: ["id_cliente", "nombre", "apellido", "cedula"],
-        },
-        {
-          model: DetalleVentaModel,
-          include: [
-            {
-              model: ProductoModel,
-              attributes: ["id_producto", "nombre", "categoria", "temporada"],
-            },
-          ],
-        },
-      ],
-    });
+    const ventas = await Venta.find()
+      .sort({ fecha: -1 })
+      .populate({
+        path: "id_cliente",
+        select: "nombre apellido cedula",
+        model: Usuario,
+      })
+      .populate({
+        path: "detalle.id_producto",
+        select: "nombre categoria temporada",
+        model: Producto,
+      })
+      .lean();
     res.json(ventas);
   } catch (error) {
     console.error("Error al obtener todas las ventas:", error);
     res.status(500).json({ msg: "Error al obtener todas las ventas" });
   }
 };
-
-/**
- * 2) Obtener el total vendido (sumatoria de `total` en ventas)
- */
-export const getTotalRevenue: RequestHandler = async (req, res) => {
+export const getTotalRevenue: RequestHandler = async (_req, res) => {
   try {
-    const result = await VentaModel.findOne({
-      attributes: [
-        [Sequelize.fn("SUM", Sequelize.col("total")), "totalVendido"],
-      ],
-      raw: true,
-    });
-    const totalVendido = parseFloat((result as any).totalVendido || 0);
+    const result = await Venta.aggregate([
+      { $group: { _id: null, totalVendido: { $sum: "$total" } } }
+    ]);
+    const totalVendido = result[0]?.totalVendido || 0;
     res.json({ totalVendido });
   } catch (error) {
     console.error("Error al calcular total vendido:", error);
     res.status(500).json({ msg: "Error al calcular total vendido" });
   }
 };
-
-/**
- * 3) Reporte de ingresos por temporada.
- *    Agrupa las ventas según la temporada de los productos vendidos.
- */
 export const getIncomeBySeason: RequestHandler = async (_req, res) => {
   try {
-    // Consulta SQL directa para agrupar por temporada y sumar subtotales
-    const sql = `
-      SELECT 
-        p.temporada AS temporada, 
-        SUM(d.subtotal) AS "ingresoTotal"
-      FROM detalle_ventas d
-      JOIN productos p ON d.id_producto = p.id_producto
-      GROUP BY p.temporada;
-    `;
-
-    const ingresosPorTemporada = await sequelize.query(sql, {
-      type: QueryTypes.SELECT,
-    });
-    // El resultado es un array de objetos: { temporada: 'alta', ingresoTotal: '123.00' }, etc.
-    res.json(ingresosPorTemporada);
+    // Unwind para detalle, lookup para producto, group por temporada
+    const result = await Venta.aggregate([
+      { $unwind: "$detalle" },
+      {
+        $lookup: {
+          from: "productos",
+          localField: "detalle.id_producto",
+          foreignField: "_id",
+          as: "producto"
+        }
+      },
+      { $unwind: "$producto" },
+      {
+        $group: {
+          _id: "$producto.temporada",
+          ingresoTotal: { $sum: "$detalle.subtotal" }
+        }
+      },
+      {
+        $project: {
+          temporada: "$_id",
+          ingresoTotal: 1,
+          _id: 0
+        }
+      }
+    ]);
+    res.json(result);
   } catch (error) {
     console.error("Error al generar reporte de ingresos por temporada:", error);
-    res
-      .status(500)
-      .json({ msg: "Error al generar reporte de ingresos por temporada" });
+    res.status(500).json({ msg: "Error al generar reporte de ingresos por temporada" });
   }
 };
-
-/**
- * 4) Reporte de productos con estado, descuento y alerta de stock.
- *    - estado: 'agotado' si stock = 0; 'mínimo' si stock ≤ 5; 'disponible' en otro caso.
- *    - descuento: depende de temporada: alta→0, media→25%, baja→35%.
- *    - alerta: si stock ≤ 5 (mínimo) o stock = 0 (agotado).
- */
-export const getProductReport: RequestHandler = async (req, res) => {
+export const getProductReport: RequestHandler = async (_req, res) => {
   try {
-    const productos = await ProductoModel.findAll({ raw: true });
-
-    const reporte = productos.map((p: any) => {
-      const stock: number = p.stock;
-      const temporada: string = p.temporada;
+    const productos = await Producto.find().lean();
+    const reporte = productos.map((p) => {
+      const stock = p.stock;
+      const temporada = p.temporada;
       let estado: string;
       if (stock === 0) estado = "agotado";
       else if (stock <= 5) estado = "mínimo";
@@ -110,14 +87,12 @@ export const getProductReport: RequestHandler = async (req, res) => {
       if (temporada === "media") descuentoRate = 0.25;
       else if (temporada === "baja") descuentoRate = 0.35;
 
-      const precioBase: number = parseFloat(p.precio);
-      const precioConDescuento = parseFloat(
-        (precioBase * (1 - descuentoRate)).toFixed(2)
-      );
+      const precioBase = p.precio;
+      const precioConDescuento = +(precioBase * (1 - descuentoRate)).toFixed(2);
       const tieneAlerta = stock <= 5;
 
       return {
-        id_producto: p.id_producto,
+        _id: p._id,
         nombre: p.nombre,
         categoria: p.categoria,
         temporada,
@@ -129,152 +104,85 @@ export const getProductReport: RequestHandler = async (req, res) => {
         alerta: tieneAlerta,
       };
     });
-
     res.json(reporte);
   } catch (error) {
     console.error("Error al generar reporte de productos:", error);
     res.status(500).json({ msg: "Error al generar reporte de productos" });
   }
 };
-
-/**
- * 5) Reporte de clientes frecuentes con más de X compras en el último mes.
- *    Se pasa X como query param: /reportes/frecuentes?minCompras=3
- */
 export const getFrequentCustomers: RequestHandler = async (req, res) => {
   try {
     const minCompras = parseInt(req.query.minCompras as string) || 1;
     const haceUnMes = new Date();
     haceUnMes.setMonth(haceUnMes.getMonth() - 1);
 
-    // 1) Agrupar por id_cliente contando ventas en el último mes
-    const frecuentes = await VentaModel.findAll({
-      attributes: [
-        "id_cliente",
-        [Sequelize.fn("COUNT", Sequelize.col("id_venta")), "cantidadVentas"],
-      ],
-      where: {
-        fecha: { [Op.gte]: haceUnMes },
-      },
-      group: ["id_cliente"],
-      having: Sequelize.literal(`COUNT(id_venta) > ${minCompras}`),
-      raw: true,
-    });
+    const result = await Venta.aggregate([
+      { $match: { fecha: { $gte: haceUnMes } } },
+      { $group: { _id: "$id_cliente", cantidadVentas: { $sum: 1 } } },
+      { $match: { cantidadVentas: { $gt: minCompras } } }
+    ]);
 
-    // 2) Para cada fila (id_cliente, cantidadVentas), hacemos un findByPk SIN email
-    const result = await Promise.all(
-      frecuentes.map(async (fila: any) => {
-        const cliente = await ClienteModel.findByPk(fila.id_cliente, {
-          attributes: ["id_cliente", "nombre", "apellido", "cedula"], 
-          raw: true,
-        });
+    // Traer datos del cliente
+    const clientes = await Promise.all(
+      result.map(async (fila) => {
+        const cliente = await Usuario.findById(fila._id).select("nombre apellido cedula").lean();
         return {
-          cliente: cliente ? cliente : null,
-          cantidadVentas: parseInt(fila.cantidadVentas, 10),
+          cliente: cliente || null,
+          cantidadVentas: fila.cantidadVentas,
         };
       })
     );
 
-    res.json(result);
+    res.json(clientes);
   } catch (error) {
     console.error("Error al generar reporte de clientes frecuentes:", error);
-    res
-      .status(500)
-      .json({ msg: "Error al generar reporte de clientes frecuentes" });
+    res.status(500).json({ msg: "Error al generar reporte de clientes frecuentes" });
   }
 };
-/**
- * 6) Reporte de productos que no se han vendido nunca.
- *    Son aquellos cuya id_producto no aparece en detalle_ventas.
- */
-export const getUnsoldProducts: RequestHandler = async (req, res) => {
+export const getUnsoldProducts: RequestHandler = async (_req, res) => {
   try {
-    // Subconsulta: traer todos los id_producto vendidos
-    const vendidos = await DetalleVentaModel.findAll({
-      attributes: ["id_producto"],
-      group: ["id_producto"],
-      raw: true,
-    });
-    const idsVendidos = vendidos.map((v: any) => v.id_producto);
+    // Traer todos los id_producto vendidos
+    const vendidos = await Venta.aggregate([
+      { $unwind: "$detalle" },
+      { $group: { _id: "$detalle.id_producto" } }
+    ]);
+    const idsVendidos = vendidos.map((v) => v._id);
 
-    // Productos cuyo id_producto NO esté en idsVendidos
-    const noVendidos = await ProductoModel.findAll({
-      where: {
-        id_producto: { [Op.notIn]: idsVendidos },
-      },
-      attributes: ["id_producto", "nombre", "categoria", "stock", "temporada"],
-      raw: true,
-    });
+    // Productos cuyo _id NO esté en idsVendidos
+    const noVendidos = await Producto.find({ _id: { $nin: idsVendidos } })
+      .select("nombre categoria stock temporada")
+      .lean();
 
     res.json(noVendidos);
   } catch (error) {
     console.error("Error al generar reporte de productos no vendidos:", error);
-    res
-      .status(500)
-      .json({ msg: "Error al generar reporte de productos no vendidos" });
+    res.status(500).json({ msg: "Error al generar reporte de productos no vendidos" });
   }
 };
-
-/**
- * 7) Reporte de carrito abandonado:
- *    Clientes que tienen items en carrito abierto (estado = 'activo')
- *    y no han confirmado esa venta (no existe venta para ese carrito).
- */
-export const getAbandonedCarts: RequestHandler = async (req, res) => {
+export const getAbandonedCarts: RequestHandler = async (_req, res) => {
   try {
-    // 1) Obtener todos los carritos con estado 'activo'
-    const carritosActivos = await CarritoModel.findAll({
-      where: { estado: "activo" },
-      raw: true,
-    });
+    // Carritos activos con productos y sin venta asociada
+    const carritos = await Carrito.find({ estado: "activo", "productos.0": { $exists: true } }).lean();
 
-    const result: any[] = [];
+    const result = [];
+    for (const carrito of carritos) {
+      // ¿Existe una venta asociada a este carrito?
+      const ventaAsociada = await Venta.findOne({ id_carrito: carrito._id });
+      if (ventaAsociada) continue;
 
-    // 2) Recorremos cada carrito activo
-    for (const carrito of carritosActivos as any[]) {
-      const idCarrito = carrito.id_carrito as number;
-
-      // 2a) ¿Tiene al menos un registro en carrito_productos?
-      const existeItem = await CarritoProductoModel.findOne({
-        where: { id_carrito: idCarrito },
-        attributes: ["id_carrito"],
-        raw: true,
-      });
-      if (!existeItem) {
-        // Si no tiene items, no lo consideramos “abandonado”
-        continue;
-      }
-
-      // 2b) ¿Existe una venta asociada a este id_carrito?
-      const ventaAsociada = await VentaModel.findOne({
-        where: { id_carrito: idCarrito },
-        attributes: ["id_venta"],
-        raw: true,
-      });
-      if (ventaAsociada) {
-        // Si ya hay venta, tampoco es carrito “abandonado”
-        continue;
-      }
-
-      // 3) Si llegamos aquí, es un carrito activo + tiene items + no tiene venta → abandonado
-      // Obtenemos datos del cliente (SIN incluir email)
-      const cliente = await ClienteModel.findByPk(carrito.id_cliente, {
-        attributes: ["id_cliente", "nombre", "apellido", "cedula"],
-        raw: true,
-      });
+      // Datos del cliente
+      const cliente = await Usuario.findById(carrito.id_cliente).select("nombre apellido cedula").lean();
 
       result.push({
-        id_carrito: idCarrito,
-        cliente: cliente ? cliente : null,
-        fecha: carrito.fecha, // vendrá en formato Date o string según tu tabla
+        id_carrito: carrito._id,
+        cliente: cliente || null,
+        fecha: carrito.fecha,
       });
     }
 
     res.json(result);
   } catch (error) {
     console.error("Error al generar reporte de carritos abandonados:", error);
-    res
-      .status(500)
-      .json({ msg: "Error al generar reporte de carritos abandonados" });
+    res.status(500).json({ msg: "Error al generar reporte de carritos abandonados" });
   }
 };

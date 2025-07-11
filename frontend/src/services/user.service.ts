@@ -1,37 +1,32 @@
+// services/users.service.ts
 import axios from "axios";
-import type { userInterface } from "../interfaces/user.interface";
-import type { newUserInterface } from "../interfaces/newUser.interface";
+import type { LoginResponse } from "../interfaces/user.interface";
+import type { NewUserInterface } from "../interfaces/newUser.interface";
 
-const API_URL = "http://localhost:1880/api/users";
-export interface LoginResponse {
-  token: string;
-  user: userInterface;
-}
+const BASE = "http://localhost:1880/api/users";
+
 export const loginUsuario = async (
   email: string,
   password: string
 ): Promise<LoginResponse | null> => {
   try {
-    const response = await axios.post("http://localhost:1880/api/users/login", {
+    const { data } = await axios.post<LoginResponse>(`${BASE}/login`, {
       email,
       password,
     });
-
-    return response.data;
-  } catch (error) {
-    console.error("Error al iniciar sesión:", error);
+    return data;
+  } catch {
     return null;
   }
 };
 
 export const registrarUsuario = async (
-  usuario: newUserInterface
+  usuario: NewUserInterface
 ): Promise<boolean> => {
   try {
-    await axios.post(`${API_URL}/`, usuario);
+    await axios.post(`${BASE}/register`, usuario);
     return true;
-  } catch (error) {
-    console.error("Error al registrar usuario:", error);
+  } catch {
     return false;
   }
 };

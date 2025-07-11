@@ -45,7 +45,7 @@ export function AdminProductosPage(containerId: string) {
       .map(
         (p, idx) => /* html */ `
       <tr class="hover:bg-gray-50 transition">
-        <td class="px-4 py-2 text-center">${p.id_producto}</td>
+        <td class="px-4 py-2 text-center">${p._id}</td>
         <td class="px-4 py-2">${p.codigo}</td>
         <td class="px-4 py-2">${p.nombre}</td>
         <td class="px-4 py-2">${p.categoria}</td>
@@ -115,7 +115,7 @@ export function AdminProductosPage(containerId: string) {
       btn.addEventListener("click", async () => {
         const idx = Number(btn.dataset.idx);
         if (confirm("¿Eliminar este producto?")) {
-          await deleteProduct(products[idx].id_producto);
+          await deleteProduct(products[idx]._id);
           loadTable();
         }
       })

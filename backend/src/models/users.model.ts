@@ -1,19 +1,41 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/conection";
+// src/models/usuario.model.ts
+import { Schema, model, Document, Types } from "mongoose";
 
-export const UsuarioModel = sequelize.define('usuarios', {
-  id_usuario: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  email: { type: DataTypes.STRING(255), unique: true, allowNull: false },
-  password: { type: DataTypes.TEXT, allowNull: false },
-  rol: { 
-    type: DataTypes.STRING(20), 
-    allowNull: false, 
-    validate: { isIn: [['admin', 'cliente']] }
+export interface ICliente {
+  nombre: string;
+  apellido: string;
+  cedula: string;
+  direccion: string;
+}
+
+export interface IUsuario extends Document {
+  email: string;
+  password: string;
+  rol: "admin" | "cliente";
+  cliente?: ICliente;
+}
+
+const ClienteSubschema = new Schema<ICliente>(
+  {
+    nombre:    { type: String },
+    apellido:  { type: String },
+    cedula:    { type: String },
+    direccion: { type: String },
   },
-}, {
-  freezeTableName: true,
-  timestamps: false,
-});
+  { _id: false }
+);
 
+const UsuarioSchema = new Schema<IUsuario>(
+  {
+    email:    { type: String, required: true, match: /^\S+@\S+\.\S+$/, unique: true },
+    password: { type: String, required: true },
+    rol:      { type: String, required: true, enum: ["admin", "cliente"] },
+    cliente:  { type: ClienteSubschema }, // sólo válido si rol==='cliente'
+  },
+  {
+    collection: "usuarios",
+    timestamps: false,
+  }
+);
 
-
+export const Usuario = model<IUsuario>("Usuario", UsuarioSchema);

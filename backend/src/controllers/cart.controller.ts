@@ -1,237 +1,191 @@
-import { Request, RequestHandler, Response } from "express";
-import { ProductoModel } from "../models/products.model";
-import { CarritoProductoModel } from "../models/product_carts.model";
-import { CarritoModel } from "../models/carts.model";
+// src/controllers/cart.controller.ts
+import { Request, Response, RequestHandler } from "express";
+import { Carrito } from "../models/carts.model";
+import { Producto } from "../models/products.model";
 import { calcularPrecioFinal } from "../utils/calculates";
+import { Types } from "mongoose";
 
-export const addProductToCart: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+// 1. Agregar producto al carrito
+export const addProductToCart: RequestHandler = async (req, res) => {
   const { id_cliente, id_producto, cantidad } = req.body;
-
-  console.log(id_cliente)
   try {
-    // 1. Verificar si existe un carrito ACTIVO del cliente
-    let carrito = await CarritoModel.findOne({
-      where: { id_cliente, estado: "activo" },
+    const clienteId = new Types.ObjectId(id_cliente);
+    const productoId = new Types.ObjectId(id_producto);
+
+    // 1. Buscar o crear carrito activo
+    let carrito = await Carrito.findOne({
+      id_cliente: clienteId,
+      estado: "activo",
     });
-    console.log(carrito)
-    // 2. Si no existe, crear uno
     if (!carrito) {
-      carrito = await CarritoModel.create({
-        id_cliente,
+      carrito = await Carrito.create({
+        id_cliente: clienteId,
         estado: "activo",
+        fecha: new Date(),
+        productos: [],
       });
     }
-    const idCarrito = carrito.get("id_carrito");
 
-    const existente = await CarritoProductoModel.findOne({
-      where: { id_carrito: idCarrito, id_producto },
-    });
-    if (existente) {
-      res.status(400).json({ msg: "El producto ya está agregado al carrito" });
+    // 2. Verificar duplicado
+    if (carrito.productos.some((p) => p.id_producto.equals(productoId))) {
+      res.status(400).json({ msg: "El producto ya está en el carrito" });
       return;
     }
-    // 3. Buscar el producto
-    const producto = await ProductoModel.findByPk(id_producto);
+
+    // 3. Buscar producto y verificar stock
+    const producto = await Producto.findById(productoId);
     if (!producto) {
       res.status(404).json({ msg: "Producto no encontrado" });
       return;
     }
-
-    const stock = producto.get("stock") as number;
-
-    // 4. Validar si hay suficiente stock
-    if (stock < cantidad) {
-      res
-        .status(400)
-        .json({ msg: "Stock insuficiente para agregar al carrito" });
+    if (producto.stock < cantidad) {
+      res.status(400).json({ msg: "Stock insuficiente" });
       return;
     }
 
-    // 5. Calcular precios (descuento e impuesto)
+    // 4. Calcular precios
     const { precioConDescuento, impuesto, subtotal } = calcularPrecioFinal(
       producto,
       cantidad
     );
 
-    // 6. Agregar producto al carrito
-    const item = await CarritoProductoModel.create({
-      id_carrito: carrito.get("id_carrito"),
-      id_producto,
-      cantidad,
-      precio_unitario: precioConDescuento,
-      impuesto,
-      subtotal,
-    });
+           carrito.productos.push({
+          id_producto: productoId,
+          cantidad: parseInt(cantidad, 10),
+          precio_unitario: precioConDescuento,
+          impuesto: typeof impuesto === "number" ? impuesto : 0,
+          subtotal: typeof subtotal === "number" ? subtotal : 0,
+        });
+    await carrito.save();
 
     res.status(201).json({
       msg: "Producto agregado al carrito",
-      item,
-      id_carrito: carrito.get("id_carrito"),
+      carrito,
     });
+    return;
   } catch (err) {
-    console.error(err);
+    console.error("Error al agregar producto al carrito:", err);
     res.status(500).json({ msg: "Error al agregar producto al carrito" });
+    return;
   }
 };
 
-// 2. Listar productos del carrito
-export const listCartProducts: RequestHandler = async (
-  req: Request,
-  res: Response
-) => {
+// 2. Listar productos del carrito activo del cliente
+export const listCartProducts: RequestHandler = async (req, res) => {
   const { id_cliente } = req.params;
-
   try {
-    const clienteId = parseInt(id_cliente);
-    if (isNaN(clienteId)) {
-      res.status(400).json({ msg: "ID de cliente inválido" });
-      return;
-    }
-
-    // 1. Buscar carrito ACTIVO del cliente
-    const carrito = await CarritoModel.findOne({
-      where: { id_cliente: clienteId, estado: "activo" },
-    });
-
+    const clienteId = new Types.ObjectId(id_cliente);
+    const carrito = await Carrito.findOne({
+      id_cliente: clienteId,
+      estado: "activo",
+    }).populate("productos.id_producto");
     if (!carrito) {
       res.status(404).json({ msg: "Carrito no encontrado o inactivo" });
       return;
     }
-
-    const idCarrito = carrito.get("id_carrito");
-
-    // 2. Buscar productos del carrito
-    const carritoProductos = await CarritoProductoModel.findAll({
-      where: { id_carrito: idCarrito },
-    });
-
-    // Obtener todos los id_producto para la consulta
-    const idsProductos = carritoProductos.map((item) =>
-      item.get("id_producto")
-    );
-
-    // 3. Buscar detalles de productos
-    const productos = await ProductoModel.findAll({
-      where: { id_producto: idsProductos },
-    });
-
-    // 4. Combinar datos
-    const respuesta = carritoProductos.map((item) => {
-      const producto = productos.find(
-        (p) => p.get("id_producto") === item.get("id_producto")
-      );
-      return {
-        ...item.toJSON(),
-        producto: producto ? producto.toJSON() : null,
-      };
-    });
-
-    res.json(respuesta);
-  } catch (error) {
-    console.error("Error al listar productos del carrito:", error);
+    res.json(carrito.productos);
+    return;
+  } catch (err) {
+    console.error("Error al listar productos del carrito:", err);
     res.status(500).json({ msg: "Error al listar productos del carrito" });
+    return;
   }
 };
 
 // 3. Eliminar un producto del carrito activo
 export const removeProductFromCart: RequestHandler = async (req, res) => {
-  const id_cliente = parseInt(req.params.id_cliente, 10);
-  const id_producto = parseInt(req.params.id_producto, 10);
+  const { id_cliente, id_producto } = req.params;
   try {
-    // 1. Buscar carrito ACTIVO del cliente
-    const carrito = await CarritoModel.findOne({
-      where: { id_cliente, estado: "activo" },
-    });
+    const clienteId = new Types.ObjectId(id_cliente);
+    const productoId = new Types.ObjectId(id_producto);
 
+    const carrito = await Carrito.findOne({
+      id_cliente: clienteId,
+      estado: "activo",
+    });
     if (!carrito) {
       res.status(404).json({ msg: "Carrito no encontrado o inactivo" });
       return;
     }
 
-    const idCarrito = carrito.get("id_carrito");
-
-    // 2. Buscar el item en carrito_productos
-    const item = await CarritoProductoModel.findOne({
-      where: { id_carrito: idCarrito, id_producto },
-    });
-
-    if (!item) {
+    const idx = carrito.productos.findIndex((p) =>
+      p.id_producto.equals(productoId)
+    );
+    if (idx === -1) {
       res.status(404).json({ msg: "El producto no está en el carrito" });
       return;
     }
 
-    // 3. Eliminar el item
-    await item.destroy();
+    carrito.productos.splice(idx, 1);
+    await carrito.save();
 
     res.json({ msg: "Producto eliminado del carrito" });
+    return;
   } catch (err) {
-    console.error(err);
+    console.error("Error al eliminar producto del carrito:", err);
     res.status(500).json({ msg: "Error al eliminar producto del carrito" });
+    return;
   }
 };
 
-/**
- * PUT /api/carts/update-product
- * Actualiza la cantidad de un producto en el carrito activo del cliente
- * Body: { id_cliente, id_producto, cantidad }
- */
+// 4. Actualizar cantidad de un producto en el carrito activo
+
 export const updateCartProduct: RequestHandler = async (req, res) => {
-  // Extraemos de params en lugar de body
-  const id_cliente = parseInt(req.params.id_cliente, 10);
-  const id_producto = parseInt(req.params.id_producto, 10);
-  const cantidad = parseInt(req.params.cantidad, 10);
   try {
-    // Verificar carrito activo
-    const carrito = await CarritoModel.findOne({
-      where: { id_cliente, estado: "activo" },
+    // 1) Extraer todo de params
+    const { id_cliente, id_producto, cantidad: cantidadParam } = req.params;
+    // 2) Parsear cantidad a número
+    const cantidad =Math.floor(cantidadParam)
+    if (isNaN(cantidad) || cantidad < 1) {
+       res.status(400).json({ msg: "Cantidad inválida" });return
+    }
+
+    const clienteId = new Types.ObjectId(id_cliente);
+    const productoId = new Types.ObjectId(id_producto);
+
+    // 3) Buscar carrito activo
+    const carrito = await Carrito.findOne({
+      id_cliente: clienteId,
+      estado: "activo",
     });
     if (!carrito) {
-      res.status(404).json({ msg: "Carrito no encontrado o ya confirmado" });
+      res.status(404).json({ msg: "Carrito no encontrado o inactivo" });
       return;
     }
 
-    const idCarrito = carrito.get("id_carrito");
-
-    // Buscar el item en carrito_productos
-    const item = await CarritoProductoModel.findOne({
-      where: { id_carrito: idCarrito, id_producto },
-    });
+    // 4) Buscar el item en el carrito
+    const item = carrito.productos.find((p) =>
+      p.id_producto.equals(productoId)
+    );
     if (!item) {
       res.status(404).json({ msg: "El producto no está en el carrito" });
       return;
     }
 
-    // 3️⃣ Buscar datos del producto original
-    const producto = await ProductoModel.findByPk(id_producto);
+    // 5) Verificar stock
+    const producto = await Producto.findById(productoId);
     if (!producto) {
       res.status(404).json({ msg: "Producto no encontrado" });
       return;
     }
-
-    const stock = producto.get("stock") as number;
-    if (stock < cantidad) {
-      res
-        .status(400)
-        .json({ msg: "Stock insuficiente para la cantidad solicitada" });
+    if (producto.stock < cantidad) {
+      res.status(400).json({ msg: "Stock insuficiente" });
       return;
     }
 
-    //  Recalcular precios con la nueva cantidad
+    // 6) Recalcular precios
     const { precioConDescuento, impuesto, subtotal } = calcularPrecioFinal(
       producto,
       cantidad
     );
 
-    // 5️⃣ Actualizar el registro en carrito_productos
-    await item.update({
-      cantidad,
-      precio_unitario: precioConDescuento,
-      impuesto,
-      subtotal,
-    });
+    item.cantidad = cantidad;
+    item.precio_unitario = precioConDescuento;
+    item.impuesto = impuesto;
+    item.subtotal = subtotal;
+
+    // 7) Guardar
+    await carrito.save();
 
     res.json({
       msg: "Cantidad actualizada correctamente",

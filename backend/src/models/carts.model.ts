@@ -1,12 +1,43 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/conection";
+// src/models/carrito.model.ts
+import { Schema, model, Document, Types } from "mongoose";
 
-export const CarritoModel = sequelize.define('carritos', {
-  id_carrito: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  id_cliente: { type: DataTypes.INTEGER, allowNull: false },
-  fecha: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-  estado: { type: DataTypes.STRING(20), defaultValue: 'activo' },
-}, {
-  freezeTableName: true,
-  timestamps: false,
-});
+export interface ICarritoItem {
+  id_producto: Types.ObjectId;
+  cantidad: number;
+  precio_unitario: number;
+  impuesto?: number;
+  subtotal?: number;
+}
+
+export interface ICarrito extends Document {
+  id_cliente: Types.ObjectId;
+  fecha?: Date;
+  estado: "activo" | "abandonado" | "completado";
+  productos: ICarritoItem[];
+}
+
+const CarritoItemSchema = new Schema<ICarritoItem>(
+  {
+    id_producto:      { type: Schema.Types.ObjectId, ref: "Producto", required: true },
+    cantidad:         { type: Number, required: true, min: 1 },
+    precio_unitario:  { type: Number, required: true, min: 0 },
+    impuesto:         { type: Number, min: 0 },
+    subtotal:         { type: Number, min: 0 },
+  },
+  { _id: false }
+);
+
+const CarritoSchema = new Schema<ICarrito>(
+  {
+    id_cliente:   { type: Schema.Types.ObjectId, ref: "Usuario", required: true },
+    fecha:        { type: Date },
+    estado:       { type: String, required: true, enum: ["activo", "abandonado", "completado"] },
+    productos:    { type: [CarritoItemSchema], required: true },
+  },
+  {
+    collection: "carritos",
+    timestamps: false,
+  }
+);
+
+export const Carrito = model<ICarrito>("Carrito", CarritoSchema);

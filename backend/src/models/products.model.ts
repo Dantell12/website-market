@@ -1,36 +1,34 @@
-import { DataTypes } from "sequelize";
-import sequelize from "../config/conection";
+// src/models/producto.model.ts
+import { Schema, model, Document } from "mongoose";
 
-export const ProductoModel = sequelize.define(
-  "productos",
+export interface IProducto extends Document {
+  codigo: string;
+  nombre: string;
+  categoria: string;
+  precio: number;
+  stock: number;
+  temporada: "alta" | "media" | "baja";
+  img?: string;
+  creado_en?: Date;
+  alerta_stock?: boolean;
+}
+
+const ProductoSchema = new Schema<IProducto>(
   {
-    id_producto: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    codigo: { type: DataTypes.STRING(20), unique: true, allowNull: false },
-    nombre: { type: DataTypes.TEXT, allowNull: false },
-    categoria: { type: DataTypes.TEXT, allowNull: false },
-    precio: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-      validate: { min: 0 },
-    },
-    stock: { type: DataTypes.INTEGER, allowNull: false, validate: { min: 0 } },
-    temporada: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: { isIn: [["alta", "media", "baja"]] },
-    },
-    img: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    creado_en: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    codigo:       { type: String, required: true, unique: true },
+    nombre:       { type: String, required: true },
+    categoria:    { type: String, required: true },
+    precio:       { type: Number, required: true, min: 0 },
+    stock:        { type: Number, required: true, min: 0 },
+    temporada:    { type: String, required: true, enum: ["alta", "media", "baja"] },
+    img:          { type: String },
+    creado_en:    { type: Date },
+    alerta_stock: { type: Boolean },
   },
   {
-    freezeTableName: true,
+    collection: "productos",
     timestamps: false,
   }
 );
+
+export const Producto = model<IProducto>("Producto", ProductoSchema);

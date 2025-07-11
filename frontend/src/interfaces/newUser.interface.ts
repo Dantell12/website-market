@@ -1,10 +1,10 @@
-export interface newUserInterface {
-  id_usuario: number;
-  email: string;
-  password: string;
-  rol: string;
-  nombre: string;
-  apellido: string;
-  cedula: string;
-  direccion?: string | null;
+// src/interfaces/newUser.interface.ts
+// Lo que envías al registrar un usuario
+export interface NewUserInterface {
+  email:     string;
+  password:  string;
+  nombre:    string;      // datos de cliente
+  apellido:  string;
+  cedula:    string;
+  direccion?: string;
 }

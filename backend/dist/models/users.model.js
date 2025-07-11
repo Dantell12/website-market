@@ -1,21 +1,21 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UsuarioModel = void 0;
-const sequelize_1 = require("sequelize");
-const conection_1 = __importDefault(require("../config/conection"));
-exports.UsuarioModel = conection_1.default.define('usuarios', {
-    id_usuario: { type: sequelize_1.DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    email: { type: sequelize_1.DataTypes.STRING(255), unique: true, allowNull: false },
-    password: { type: sequelize_1.DataTypes.TEXT, allowNull: false },
-    rol: {
-        type: sequelize_1.DataTypes.STRING(20),
-        allowNull: false,
-        validate: { isIn: [['admin', 'cliente']] }
-    },
+exports.Usuario = void 0;
+// src/models/usuario.model.ts
+const mongoose_1 = require("mongoose");
+const ClienteSubschema = new mongoose_1.Schema({
+    nombre: { type: String },
+    apellido: { type: String },
+    cedula: { type: String },
+    direccion: { type: String },
+}, { _id: false });
+const UsuarioSchema = new mongoose_1.Schema({
+    email: { type: String, required: true, match: /^\S+@\S+\.\S+$/, unique: true },
+    password: { type: String, required: true },
+    rol: { type: String, required: true, enum: ["admin", "cliente"] },
+    cliente: { type: ClienteSubschema }, // sólo válido si rol==='cliente'
 }, {
-    freezeTableName: true,
+    collection: "usuarios",
     timestamps: false,
 });
+exports.Usuario = (0, mongoose_1.model)("Usuario", UsuarioSchema);

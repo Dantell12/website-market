@@ -3,9 +3,10 @@ export interface IncomeBySeason {
   temporada: string;
   ingresoTotal: string | number;
 }
+
 // 4) Reporte de productos con estado, descuento y alerta de stock
 export interface ProductReport {
-  id_producto: number;
+  _id: string; // MongoDB ID
   nombre: string;
   categoria: string;
   temporada: string;
@@ -16,10 +17,11 @@ export interface ProductReport {
   estado: "agotado" | "mínimo" | "disponible";
   alerta: boolean;
 }
+
 // 5) Reporte de clientes frecuentes
 export interface FrequentCustomer {
   cliente: {
-    id_cliente: number;
+    _id: string;
     nombre: string;
     apellido: string;
     email?: string;
@@ -27,20 +29,23 @@ export interface FrequentCustomer {
   } | null;
   cantidadVentas: number;
 }
+
 // 7) Reporte de carritos abandonados
 export interface AbandonedCart {
-  id_carrito: number;
+  _id: string; // id_carrito
   cliente: {
-    id_cliente: number;
+    _id: string;
     nombre: string;
     apellido: string;
     cedula: string;
     email?: string;
   } | null;
   fecha: string;
-} // 6) Reporte de productos no vendidos
+}
+
+// 6) Reporte de productos no vendidos
 export interface UnsoldProduct {
-  id_producto: number;
+  _id: string;
   nombre: string;
   categoria: string;
   stock: number;

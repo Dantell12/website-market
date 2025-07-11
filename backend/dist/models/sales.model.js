@@ -1,20 +1,25 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VentaModel = void 0;
-const sequelize_1 = require("sequelize");
-const conection_1 = __importDefault(require("../config/conection"));
-exports.VentaModel = conection_1.default.define('ventas', {
-    id_venta: { type: sequelize_1.DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    id_cliente: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
-    id_carrito: { type: sequelize_1.DataTypes.INTEGER, allowNull: false },
-    fecha: { type: sequelize_1.DataTypes.DATE, defaultValue: sequelize_1.DataTypes.NOW },
-    subtotal: { type: sequelize_1.DataTypes.DECIMAL(10, 2), allowNull: false },
-    impuestos: { type: sequelize_1.DataTypes.DECIMAL(10, 2), allowNull: false },
-    total: { type: sequelize_1.DataTypes.DECIMAL(10, 2), allowNull: false },
+exports.Venta = void 0;
+// src/models/venta.model.ts
+const mongoose_1 = require("mongoose");
+const VentaDetalleSchema = new mongoose_1.Schema({
+    id_producto: { type: mongoose_1.Schema.Types.ObjectId, ref: "Producto", required: true },
+    cantidad: { type: Number, required: true },
+    precio_unitario: { type: Number, required: true },
+    impuesto: { type: Number },
+    subtotal: { type: Number },
+}, { _id: false });
+const VentaSchema = new mongoose_1.Schema({
+    id_cliente: { type: mongoose_1.Schema.Types.ObjectId, ref: "Usuario", required: true },
+    id_carrito: { type: mongoose_1.Schema.Types.ObjectId, ref: "Carrito" },
+    fecha: { type: Date },
+    subtotal: { type: Number, min: 0 },
+    impuestos: { type: Number, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+    detalle: { type: [VentaDetalleSchema] },
 }, {
-    freezeTableName: true,
+    collection: "ventas",
     timestamps: false,
 });
+exports.Venta = (0, mongoose_1.model)("Venta", VentaSchema);
