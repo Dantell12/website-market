@@ -1,7 +1,19 @@
 // src/services/client.service.ts
 
 import api from "../axios.config";
-import type { ClienteData, ClientInterface, UpdateClientPayload } from "../interfaces/client.interface";
+import type { ClientInterface, UpdateClientPayload } from "../interfaces/client.interface";
+
+// Nuevo tipo para creación de cliente completo
+interface CreateClientPayload {
+  email: string;
+  password: string;
+  cliente: {
+    nombre: string;
+    apellido: string;
+    cedula: string;
+    direccion?: string;
+  };
+}
 
 const API_URL = "http://localhost:1880/api/clients";
 
@@ -25,14 +37,15 @@ export const getClientById = async (id: string): Promise<ClientInterface | null>
   }
 };
 
-// Crear un nuevo cliente
+// ✅ Crear un nuevo cliente (usuario + cliente)
 export const createClient = async (
-  payload: ClienteData
+  payload: CreateClientPayload
 ): Promise<ClientInterface | null> => {
   try {
-    const { data } = await api.post<ClientInterface>(API_URL, { cliente: payload });
+    const { data } = await api.post<ClientInterface>(API_URL, payload);
     return data;
-  } catch {
+  } catch (err) {
+    console.error("Error en createClient:", err);
     return null;
   }
 };

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteClient = exports.updateClient = exports.getClientById = exports.getClients = void 0;
+exports.deleteClient = exports.updateClient = exports.postClient = exports.getClientById = exports.getClients = void 0;
 const users_model_1 = require("../models/users.model");
 // GET /api/clients
 const getClients = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -44,6 +44,34 @@ const getClientById = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
 });
 exports.getClientById = getClientById;
+// POST /api/clients
+const postClient = (req, res, _next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { email, password, cliente } = req.body;
+        if (!email || !password || !cliente || !cliente.nombre || !cliente.apellido || !cliente.cedula) {
+            res.status(400).json({ msg: "Faltan datos requeridos" });
+            return;
+        }
+        const usuarioExistente = yield users_model_1.Usuario.findOne({ email });
+        if (usuarioExistente) {
+            res.status(409).json({ msg: "Ya existe un usuario con ese correo" });
+            return;
+        }
+        const nuevoUsuario = new users_model_1.Usuario({
+            email,
+            password,
+            rol: "cliente",
+            cliente,
+        });
+        yield nuevoUsuario.save();
+        res.status(201).json({ msg: "Cliente creado correctamente", usuario: nuevoUsuario });
+    }
+    catch (err) {
+        console.error("Error postClient:", err);
+        res.status(500).json({ msg: "Error interno al crear cliente" });
+    }
+});
+exports.postClient = postClient;
 // PUT /api/clients/:id
 const updateClient = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;

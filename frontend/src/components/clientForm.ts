@@ -35,35 +35,41 @@ export class ClientForm {
 
     // Formulario
     modal.innerHTML = `
-      <form id="client-form" class="space-y-4">
-        <h3 class="text-xl font-bold mb-2">
-          ${client ? "Editar Cliente" : "Nuevo Cliente"}
-        </h3>
-        <input name="nombre" type="text" placeholder="Nombre" required
-               value="${client?.cliente.nombre || ""}"
-               class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
-        <input name="apellido" type="text" placeholder="Apellido" required
-               value="${client?.cliente.apellido || ""}"
-               class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
-        <input name="cedula" type="text" placeholder="Cédula" required
-               value="${client?.cliente.cedula || ""}"
-               class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
-        <input name="direccion" type="text" placeholder="Dirección"
-               value="${client?.cliente.direccion || ""}"
-               class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+  <form id="client-form" class="space-y-4">
+    <h3 class="text-xl font-bold mb-2">
+      ${client ? "Editar Cliente" : "Nuevo Cliente"}
+    </h3>
+    ${!client ? `
+      <input name="email" type="email" placeholder="Correo" required
+             class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+      <input name="password" type="password" placeholder="Contraseña" required
+             class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+    ` : ""}
+    <input name="nombre" type="text" placeholder="Nombre" required
+           value="${client?.cliente.nombre || ""}"
+           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+    <input name="apellido" type="text" placeholder="Apellido" required
+           value="${client?.cliente.apellido || ""}"
+           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+    <input name="cedula" type="text" placeholder="Cédula" required
+           value="${client?.cliente.cedula || ""}"
+           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+    <input name="direccion" type="text" placeholder="Dirección"
+           value="${client?.cliente.direccion || ""}"
+           class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
 
-        <div class="flex justify-end gap-3 mt-4">
-          <button type="button" id="cancel" 
-                  class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded">
-            Cancelar
-          </button>
-          <button type="submit" 
-                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
-            Guardar
-          </button>
-        </div>
-      </form>
-    `;
+    <div class="flex justify-end gap-3 mt-4">
+      <button type="button" id="cancel" 
+              class="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded">
+        Cancelar
+      </button>
+      <button type="submit" 
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded">
+        Guardar
+      </button>
+    </div>
+  </form>
+`;
 
     this.overlay.appendChild(modal);
     document.body.appendChild(this.overlay);
@@ -76,30 +82,50 @@ export class ClientForm {
   }
 
   /** Maneja el submit del formulario */
-  private async onSubmit(e: Event) {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const nombre = (form.nombre as HTMLInputElement).value.trim();
-    const apellido = (form.apellido as HTMLInputElement).value.trim();
-    const cedula = (form.cedula as HTMLInputElement).value.trim();
-    const direccion = (form.direccion as HTMLInputElement).value.trim() || undefined;
+private async onSubmit(e: Event) {
+  e.preventDefault();
+  const form = e.target as HTMLFormElement;
+  const nombre = (form.nombre as HTMLInputElement).value.trim();
+  const apellido = (form.apellido as HTMLInputElement).value.trim();
+  const cedula = (form.cedula as HTMLInputElement).value.trim();
+  const direccion = (form.direccion as HTMLInputElement).value.trim() || undefined;
 
+  if (this.client) {
+    // Modo edición (solo cliente)
     const payload = { nombre, apellido, cedula, direccion };
-
     try {
-      if (this.client) {
-        // Editar
-        await updateClient(this.client._id, payload);
-      } else {
-        // Crear
-        await createClient(payload);
-      }
+      await updateClient(this.client._id, payload);
       this.onSave();
       this.close();
     } catch {
-      alert("Hubo un error al guardar el cliente.");
+      alert("Hubo un error al actualizar el cliente.");
+    }
+  } else {
+    // Modo creación (usuario + cliente)
+    const email = (form.email as HTMLInputElement).value.trim();
+    const password = (form.password as HTMLInputElement).value.trim();
+
+    if (!email || !password) {
+      alert("Debe ingresar email y contraseña.");
+      return;
+    }
+
+    const payload = {
+      email,
+      password,
+      cliente: { nombre, apellido, cedula, direccion }
+    };
+
+    try {
+      await createClient(payload);
+      this.onSave();
+      this.close();
+    } catch (err: any) {
+      alert("Hubo un error al crear el cliente.");
+      console.error(err);
     }
   }
+}
 
   /** Cierra y destruye el modal */
   private close() {

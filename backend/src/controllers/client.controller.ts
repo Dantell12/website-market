@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from "express";
+import { Request, Response, RequestHandler, NextFunction } from "express";
 import { Usuario, ICliente } from "../models/users.model";
 
 // GET /api/clients
@@ -36,6 +36,39 @@ export const getClientById: RequestHandler = async (req, res) => {
   } catch (err) {
     console.error("Error getClientById:", err);
     res.status(500).json({ msg: "Error interno al obtener cliente" });
+  }
+};
+
+// POST /api/clients
+
+export const postClient = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
+  try {
+    const { email, password, cliente } = req.body;
+
+    if (!email || !password || !cliente || !cliente.nombre || !cliente.apellido || !cliente.cedula) {
+      res.status(400).json({ msg: "Faltan datos requeridos" });
+      return;
+    }
+
+    const usuarioExistente = await Usuario.findOne({ email });
+    if (usuarioExistente) {
+      res.status(409).json({ msg: "Ya existe un usuario con ese correo" });
+      return;
+    }
+
+    const nuevoUsuario = new Usuario({
+      email,
+      password,
+      rol: "cliente",
+      cliente,
+    });
+
+    await nuevoUsuario.save();
+
+    res.status(201).json({ msg: "Cliente creado correctamente", usuario: nuevoUsuario });
+  } catch (err) {
+    console.error("Error postClient:", err);
+    res.status(500).json({ msg: "Error interno al crear cliente" });
   }
 };
 
