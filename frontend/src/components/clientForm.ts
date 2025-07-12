@@ -40,16 +40,16 @@ export class ClientForm {
           ${client ? "Editar Cliente" : "Nuevo Cliente"}
         </h3>
         <input name="nombre" type="text" placeholder="Nombre" required
-               value="${client?.nombre || ""}"
+               value="${client?.cliente.nombre || ""}"
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
         <input name="apellido" type="text" placeholder="Apellido" required
-               value="${client?.apellido || ""}"
+               value="${client?.cliente.apellido || ""}"
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
         <input name="cedula" type="text" placeholder="Cédula" required
-               value="${client?.cedula || ""}"
+               value="${client?.cliente.cedula || ""}"
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
         <input name="direccion" type="text" placeholder="Dirección"
-               value="${client?.direccion || ""}"
+               value="${client?.cliente.direccion || ""}"
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
 
         <div class="flex justify-end gap-3 mt-4">
@@ -82,14 +82,14 @@ export class ClientForm {
     const nombre = (form.nombre as HTMLInputElement).value.trim();
     const apellido = (form.apellido as HTMLInputElement).value.trim();
     const cedula = (form.cedula as HTMLInputElement).value.trim();
-    const direccion = (form.direccion as HTMLInputElement).value.trim() || null;
+    const direccion = (form.direccion as HTMLInputElement).value.trim() || undefined;
 
     const payload = { nombre, apellido, cedula, direccion };
 
     try {
       if (this.client) {
         // Editar
-        await updateClient(this.client.id_cliente, payload);
+        await updateClient(this.client._id, payload);
       } else {
         // Crear
         await createClient(payload);
