@@ -46,9 +46,9 @@ export class ProductForm {
         <input name="stock" type="number" placeholder="Stock" min="0" required
                value="${product?.stock ?? ""}"
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
-        <input name="img" type="text" placeholder="URL de Imagen" required
-               value="${product?.img ?? ""}"
+        <input name="img" type="file" accept="image/png, image/jpeg" 
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
+               value ="              ${product?.img ? `<img src="/api/products/image/${product.img}" alt="Imagen actual" class="mx-auto h-24 w-24 object-cover mb-2 rounded" />` : ""}"
         <select name="temporada" required
                 class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
           <option value="">Temporada...</option>
@@ -92,22 +92,32 @@ export class ProductForm {
     const precio = parseFloat((form.precio as HTMLInputElement).value);
     const stock = parseInt((form.stock as HTMLInputElement).value, 10);
     const temporada = (form.temporada as HTMLSelectElement).value as Temporada;
-    const img = (form.img as HTMLSelectElement).value.trim() ;
+    const imgFile = (form.img as HTMLInputElement).files?.[0];
 
-    const payload = { codigo, nombre, categoria, precio, stock, temporada, img };
-
-    try {
-      if (this.product) {
-        await updateProduct(this.product._id, payload);
-      } else {
-        await createProduct(payload);
-      }
-      this.onSave();
-      this.close();
-    } catch {
-      alert("Error al guardar el producto.");
+    const formData = new FormData();
+    formData.append("codigo", codigo);
+    formData.append("nombre", nombre);
+    formData.append("categoria", categoria);
+    formData.append("precio", precio.toString());
+    formData.append("stock", stock.toString());
+    formData.append("temporada", temporada);
+    if (imgFile) {
+      formData.append("img", imgFile);
     }
-  }
+    try {
+        if (this.product) {
+          // Actualización con formData (requiere que updateProduct acepte formData)
+          await updateProduct(this.product._id, formData);
+        } else {
+          // Creación con formData
+          await createProduct(formData);
+        }
+        this.onSave();
+        this.close();
+      } catch {
+        alert("Error al guardar el producto.");
+      }
+    }
 
   private close() {
     this.overlay.remove();

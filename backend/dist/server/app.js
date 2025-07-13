@@ -15,7 +15,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const path_1 = __importDefault(require("path"));
+// Carga variables de entorno
 dotenv_1.default.config();
+// Importa módulos
 const conection_1 = __importDefault(require("../config/conection"));
 const user_routes_1 = __importDefault(require("../routes/user.routes"));
 const client_routes_1 = __importDefault(require("../routes/client.routes"));
@@ -32,7 +35,7 @@ class App {
             this.routes();
             this.listen();
         })
-            .catch(err => {
+            .catch((err) => {
             console.error("❌ Falló la conexión a MongoDB:", err);
         });
     }
@@ -44,12 +47,19 @@ class App {
         });
     }
     middlewares() {
-        this.app.use(express_1.default.json());
+        // Habilita CORS solo para el frontend
         this.app.use((0, cors_1.default)({
             origin: ["http://localhost:5173"],
             allowedHeaders: ["Content-Type", "Authorization"],
             exposedHeaders: ["Authorization"],
         }));
+        // Habilita lectura de JSON y formularios
+        this.app.use(express_1.default.json());
+        this.app.use(express_1.default.urlencoded({ extended: true }));
+        // Servir imágenes desde /api/uploads
+        const uploadsPath = path_1.default.resolve("uploads");
+        console.log("🖼️ Sirviendo imágenes desde:", uploadsPath);
+        this.app.use("/api/uploads", express_1.default.static(uploadsPath));
     }
     routes() {
         this.app.use("/api/users", user_routes_1.default);

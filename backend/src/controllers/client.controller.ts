@@ -1,5 +1,6 @@
 import { Request, Response, RequestHandler, NextFunction } from "express";
 import { Usuario, ICliente } from "../models/users.model";
+import bcrypt from "bcrypt";
 
 // GET /api/clients
 export const getClients: RequestHandler = async (req, res) => {
@@ -46,7 +47,7 @@ export const postClient = async (req: Request, res: Response, _next: NextFunctio
     const { email, password, cliente } = req.body;
 
     if (!email || !password || !cliente || !cliente.nombre || !cliente.apellido || !cliente.cedula) {
-      res.status(400).json({ msg: "Faltan datos requeridos" });
+        res.status(400).json({ msg: "Faltan datos requeridos" });
       return;
     }
 
@@ -56,9 +57,12 @@ export const postClient = async (req: Request, res: Response, _next: NextFunctio
       return;
     }
 
+    // Encripta la contraseña antes de guardar
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const nuevoUsuario = new Usuario({
       email,
-      password,
+      password: hashedPassword,
       rol: "cliente",
       cliente,
     });

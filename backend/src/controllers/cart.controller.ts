@@ -135,7 +135,7 @@ export const updateCartProduct: RequestHandler = async (req, res) => {
     // 1) Extraer todo de params
     const { id_cliente, id_producto, cantidad: cantidadParam } = req.params;
     // 2) Parsear cantidad a número
-    const cantidad =Math.floor(cantidadParam)
+    const cantidad = Math.floor(Number(cantidadParam));
     if (isNaN(cantidad) || cantidad < 1) {
        res.status(400).json({ msg: "Cantidad inválida" });return
     }

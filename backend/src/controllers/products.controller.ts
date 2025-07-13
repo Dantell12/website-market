@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from "express";
+import { RequestHandler } from "express";
 import { Producto } from "../models/products.model";
 
 /**
@@ -52,32 +52,26 @@ export const getProductById: RequestHandler = async (req, res) => {
  */
 export const postProduct: RequestHandler = async (req, res) => {
   try {
-    const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
+    const { codigo, nombre, categoria, precio, stock, temporada } = req.body;
 
-    // Validar campos obligatorios
-    if (
-      !codigo ||
-      !nombre ||
-      !categoria ||
-      precio == null ||
-      stock == null ||
-      !temporada
-    ) {
-       res.status(400).json({
-        msg: "Faltan datos obligatorios: código, nombre, categoría, precio, stock o temporada",
+    if (!codigo || !nombre || !categoria || precio == null || stock == null || !temporada) {
+      res.status(400).json({
+        msg: "Faltan datos obligatorios",
       });
       return;
     }
 
-    // Verificar unicidad de código
     const exists = await Producto.findOne({ codigo });
     if (exists) {
-       res.status(400).json({
-        msg: `El código ${codigo} ya está registrado`,
-      });
+      res.status(400).json({ msg: `El código ${codigo} ya está registrado` });
       return;
     }
 
+    let imgPath = undefined;
+    if (req.file) {
+      imgPath = req.file.filename; // Solo el nombre del archivo
+    }
+      // Verificar unicidad de código
     const newProduct = new Producto({
       codigo,
       nombre,
@@ -85,7 +79,7 @@ export const postProduct: RequestHandler = async (req, res) => {
       precio,
       stock,
       temporada,
-      img,
+      img: imgPath,
       creado_en: new Date(),
     });
 
@@ -97,9 +91,7 @@ export const postProduct: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error("Error al registrar producto:", error);
-    res.status(500).json({
-      msg: "Error al registrar producto",
-    });
+    res.status(500).json({ msg: "Error al registrar producto" });
   }
 };
 
@@ -109,36 +101,43 @@ export const postProduct: RequestHandler = async (req, res) => {
  */
 export const updateProduct: RequestHandler = async (req, res) => {
   const { id } = req.params;
-  const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
 
   try {
     const product = await Producto.findById(id);
     if (!product) {
-       res.status(404).json({
+      res.status(404).json({
         msg: `No existe un producto con id: ${id}`,
       });
       return;
     }
 
-    // Si cambia el código, verificar que no choque con otro
+    const { codigo, nombre, categoria, temporada } = req.body;
+    const precio = req.body.precio !== undefined ? parseFloat(req.body.precio) : undefined;
+    const stock = req.body.stock !== undefined ? parseInt(req.body.stock, 10) : undefined;
+
+    if ((precio !== undefined && isNaN(precio)) || (stock !== undefined && isNaN(stock))) {
+      res.status(400).json({ msg: "Precio o stock inválidos" });
+      return;
+    }
+
     if (codigo && codigo !== product.codigo) {
       const codeExists = await Producto.findOne({ codigo });
       if (codeExists) {
-         res.status(400).json({
-          msg: `El código ${codigo} ya está registrado en otro producto`,
-        });
+        res.status(400).json({ msg: `El código ${codigo} ya está registrado` });
         return;
       }
     }
 
-    product.codigo = codigo ?? product.codigo;
-    product.nombre = nombre ?? product.nombre;
-    product.categoria = categoria ?? product.categoria;
-    product.precio = precio ?? product.precio;
-    product.stock = stock ?? product.stock;
-    product.temporada = temporada ?? product.temporada;
-    product.img = img ?? product.img;
+    if (codigo !== undefined) product.codigo = codigo;
+    if (nombre !== undefined) product.nombre = nombre;
+    if (categoria !== undefined) product.categoria = categoria;
+    if (precio !== undefined) product.precio = precio;
+    if (stock !== undefined) product.stock = stock;
+    if (temporada !== undefined) product.temporada = temporada;
 
+      if (req.file) {
+      product.img = req.file.filename; // Solo el nombre del archivo
+    }
     await product.save();
 
     res.json({
@@ -147,9 +146,7 @@ export const updateProduct: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error(`Error al actualizar producto ${id}:`, error);
-    res.status(500).json({
-      msg: "Error al actualizar producto",
-    });
+    res.status(500).json({ msg: "Error al actualizar producto" });
   }
 };
 
@@ -162,7 +159,7 @@ export const deleteProduct: RequestHandler = async (req, res) => {
   try {
     const deleted = await Producto.findByIdAndDelete(id);
     if (!deleted) {
-     res.status(404).json({
+      res.status(404).json({
         msg: `No existe un producto con id: ${id}`,
       });
       return;

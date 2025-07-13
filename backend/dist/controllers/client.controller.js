@@ -8,9 +8,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteClient = exports.updateClient = exports.postClient = exports.getClientById = exports.getClients = void 0;
 const users_model_1 = require("../models/users.model");
+const bcrypt_1 = __importDefault(require("bcrypt"));
 // GET /api/clients
 const getClients = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -57,9 +61,11 @@ const postClient = (req, res, _next) => __awaiter(void 0, void 0, void 0, functi
             res.status(409).json({ msg: "Ya existe un usuario con ese correo" });
             return;
         }
+        // Encripta la contraseña antes de guardar
+        const hashedPassword = yield bcrypt_1.default.hash(password, 10);
         const nuevoUsuario = new users_model_1.Usuario({
             email,
-            password,
+            password: hashedPassword,
             rol: "cliente",
             cliente,
         });

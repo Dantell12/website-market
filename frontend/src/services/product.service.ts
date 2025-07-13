@@ -37,10 +37,14 @@ export interface CreateProductDTO {
 }
 
 export const createProduct = async (
-  product: CreateProductDTO
+  productData: FormData
 ): Promise<ProductInterface | null> => {
   try {
-    const { data } = await api.post<ProductInterface>(API_URL, product);
+    const { data } = await api.post<ProductInterface>("/products", productData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return data;
   } catch (error) {
     console.error("Error al crear producto:", error);
@@ -50,12 +54,17 @@ export const createProduct = async (
 
 export const updateProduct = async (
   id: string,
-  product: Partial<CreateProductDTO>
+  productData: FormData
 ): Promise<ProductInterface | null> => {
   try {
     const { data } = await api.put<ProductInterface>(
-      `${API_URL}/${id}`,
-      product
+      `/products/${id}`,
+      productData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return data;
   } catch (error) {

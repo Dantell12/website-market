@@ -66,27 +66,23 @@ exports.getProductById = getProductById;
  */
 const postProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
-        // Validar campos obligatorios
-        if (!codigo ||
-            !nombre ||
-            !categoria ||
-            precio == null ||
-            stock == null ||
-            !temporada) {
+        const { codigo, nombre, categoria, precio, stock, temporada } = req.body;
+        if (!codigo || !nombre || !categoria || precio == null || stock == null || !temporada) {
             res.status(400).json({
-                msg: "Faltan datos obligatorios: código, nombre, categoría, precio, stock o temporada",
+                msg: "Faltan datos obligatorios",
             });
             return;
         }
-        // Verificar unicidad de código
         const exists = yield products_model_1.Producto.findOne({ codigo });
         if (exists) {
-            res.status(400).json({
-                msg: `El código ${codigo} ya está registrado`,
-            });
+            res.status(400).json({ msg: `El código ${codigo} ya está registrado` });
             return;
         }
+        let imgPath = undefined;
+        if (req.file) {
+            imgPath = req.file.filename; // Solo el nombre del archivo
+        }
+        // Verificar unicidad de código
         const newProduct = new products_model_1.Producto({
             codigo,
             nombre,
@@ -94,7 +90,7 @@ const postProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             precio,
             stock,
             temporada,
-            img,
+            img: imgPath,
             creado_en: new Date(),
         });
         yield newProduct.save();
@@ -105,9 +101,7 @@ const postProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
     catch (error) {
         console.error("Error al registrar producto:", error);
-        res.status(500).json({
-            msg: "Error al registrar producto",
-        });
+        res.status(500).json({ msg: "Error al registrar producto" });
     }
 });
 exports.postProduct = postProduct;
@@ -117,7 +111,6 @@ exports.postProduct = postProduct;
  */
 const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { codigo, nombre, categoria, precio, stock, temporada, img } = req.body;
     try {
         const product = yield products_model_1.Producto.findById(id);
         if (!product) {
@@ -126,23 +119,35 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             });
             return;
         }
-        // Si cambia el código, verificar que no choque con otro
+        const { codigo, nombre, categoria, temporada } = req.body;
+        const precio = req.body.precio !== undefined ? parseFloat(req.body.precio) : undefined;
+        const stock = req.body.stock !== undefined ? parseInt(req.body.stock, 10) : undefined;
+        if ((precio !== undefined && isNaN(precio)) || (stock !== undefined && isNaN(stock))) {
+            res.status(400).json({ msg: "Precio o stock inválidos" });
+            return;
+        }
         if (codigo && codigo !== product.codigo) {
             const codeExists = yield products_model_1.Producto.findOne({ codigo });
             if (codeExists) {
-                res.status(400).json({
-                    msg: `El código ${codigo} ya está registrado en otro producto`,
-                });
+                res.status(400).json({ msg: `El código ${codigo} ya está registrado` });
                 return;
             }
         }
-        product.codigo = codigo !== null && codigo !== void 0 ? codigo : product.codigo;
-        product.nombre = nombre !== null && nombre !== void 0 ? nombre : product.nombre;
-        product.categoria = categoria !== null && categoria !== void 0 ? categoria : product.categoria;
-        product.precio = precio !== null && precio !== void 0 ? precio : product.precio;
-        product.stock = stock !== null && stock !== void 0 ? stock : product.stock;
-        product.temporada = temporada !== null && temporada !== void 0 ? temporada : product.temporada;
-        product.img = img !== null && img !== void 0 ? img : product.img;
+        if (codigo !== undefined)
+            product.codigo = codigo;
+        if (nombre !== undefined)
+            product.nombre = nombre;
+        if (categoria !== undefined)
+            product.categoria = categoria;
+        if (precio !== undefined)
+            product.precio = precio;
+        if (stock !== undefined)
+            product.stock = stock;
+        if (temporada !== undefined)
+            product.temporada = temporada;
+        if (req.file) {
+            product.img = req.file.filename; // Solo el nombre del archivo
+        }
         yield product.save();
         res.json({
             msg: "Producto actualizado correctamente",
@@ -151,9 +156,7 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     catch (error) {
         console.error(`Error al actualizar producto ${id}:`, error);
-        res.status(500).json({
-            msg: "Error al actualizar producto",
-        });
+        res.status(500).json({ msg: "Error al actualizar producto" });
     }
 });
 exports.updateProduct = updateProduct;

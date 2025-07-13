@@ -26,7 +26,7 @@ export function ProductCard(
   const stockBajo = product.stock > 0 && product.stock <= 5;
 
   card.innerHTML = `
-    <img src="${product.img}" alt="${product.nombre}" class="h-48 w-full object-cover" />
+  <img src="${import.meta.env.VITE_API_BASE_URL}/api/products/image/${product.img}" alt="${product.nombre}" class="h-48 w-full object-cover" />
     <div class="p-4 flex-1 flex flex-col">
       <h3 class="text-xl font-bold text-black mb-1">${product.nombre}</h3>
       <p class="text-sm text-gray-600 mb-2">Categoría: ${product.categoria}</p>

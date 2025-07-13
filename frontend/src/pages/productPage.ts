@@ -41,6 +41,7 @@ export function AdminProductosPage(containerId: string) {
     }
 
     console.log(products);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const rows = products
       .map(
         (p, idx) => /* html */ `
@@ -64,7 +65,7 @@ export function AdminProductosPage(containerId: string) {
           </span>
         </td>
         <td class="px-4 py-2 text-center">
-          <img src="${p.img}" alt="Imagen del producto" class="mx-auto h-16 w-16 object-contain rounded" />
+        <img src="${API_BASE_URL}/api/products/image/${p.img}" alt="Imagen del producto" class="mx-auto h-16 w-16 object-contain rounded" />
         </td>
         <td class="px-4 py-2 text-center space-x-2">
           <button data-idx="${idx}" class="edit-btn inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white py-1 px-3 rounded text-sm">
@@ -91,7 +92,7 @@ export function AdminProductosPage(containerId: string) {
               "Precio",
               "Stock",
               "Temporada",
-              "URL Img",
+              "Imagen",
               "Acciones",
             ]
               .map((h) => `<th class="px-4 py-3 font-semibold">${h}</th>`)
