@@ -48,7 +48,6 @@ export class ProductForm {
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
         <input name="img" type="file" accept="image/png, image/jpeg" 
                class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"/>
-               value ="              ${product?.img ? `<img src="/api/products/image/${product.img}" alt="Imagen actual" class="mx-auto h-24 w-24 object-cover mb-2 rounded" />` : ""}"
         <select name="temporada" required
                 class="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
           <option value="">Temporada...</option>
