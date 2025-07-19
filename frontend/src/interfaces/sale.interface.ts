@@ -1,5 +1,6 @@
 // src/interfaces/sale.interface.ts
 
+import type { ClientInterface } from "./client.interface";
 import type { ProductInterface } from "./product.interface";
 
 export interface SaleDetailInterface {
@@ -11,10 +12,12 @@ export interface SaleDetailInterface {
 }
 
 export interface SaleInterface {
-  id_venta: string;
+    _id?: string;
+  id_venta: string;      // ID de la venta (MongoDB _id)
   fecha: string;
   subtotal: number;
   impuestos: number;
   total: number;
-  detalles: SaleDetailInterface[];
+  detalle: SaleDetailInterface[];
+  cliente?: ClientInterface;  // Agregar cliente opcional
 }

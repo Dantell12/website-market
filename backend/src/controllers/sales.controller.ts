@@ -137,7 +137,7 @@ export const getSalesByClient: RequestHandler = async (req, res) => {
           subtotal: venta.subtotal,
           impuestos: venta.impuestos,
           total: venta.total,
-          detalles: lineas,
+          detalle: lineas,
         };
       })
     );

@@ -1,13 +1,10 @@
 // src/pages/purchasesPage.ts
 import { Navbar } from "../components/navbar";
-
 import { getSalesByClient } from "../services/sales.service";
-import type {
-  SaleInterface,
-  SaleDetailInterface,
-} from "../interfaces/sale.interface";
+import type { SaleInterface } from "../interfaces/sale.interface";
 // @ts-ignore: Librería sin tipos definidos
 import html2pdf from "html2pdf.js";
+import type { ClienteData } from "../interfaces/client.interface";
 import type { ClientSaleResponse } from "../interfaces/client-sale-response";
 
 export function PurchasesPage(containerId: string) {
@@ -25,10 +22,7 @@ export function PurchasesPage(containerId: string) {
   const listContainer = root.querySelector<HTMLElement>("#purchases-list")!;
   function generateInvoiceHTML(
     sale: SaleInterface,
-    // Se ajusta el tipo, ya que la función recibe directamente el objeto
-    // con los datos del cliente, no el objeto de usuario completo.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    client: any
+    client: ClienteData
   ): string {
     const date = new Date(sale.fecha).toLocaleString();
 
@@ -62,17 +56,17 @@ export function PurchasesPage(containerId: string) {
           </tr>
         </thead>
         <tbody>
-          ${sale.detalles
+          ${(sale.detalle ?? [])
             .map(
               (d) => `
-            <tr class="border-b border-gray-200">
-              <td class="px-4 py-2">${d.producto?.nombre || "N/D"}</td>
-              <td class="px-4 py-2 text-center">${d.cantidad}</td>
-              <td class="px-4 py-2 text-right">$${d.precio_unitario}</td>
-              <td class="px-4 py-2 text-right">$${d.impuesto}</td>
-              <td class="px-4 py-2 text-right">$${d.subtotal}</td>
-            </tr>
-          `
+              <tr class="border-b border-gray-200">
+                <td class="px-4 py-2">${d.producto?.nombre || "N/D"}</td>
+                <td class="px-4 py-2 text-center">${d.cantidad}</td>
+                <td class="px-4 py-2 text-right">$${d.precio_unitario}</td>
+                <td class="px-4 py-2 text-right">$${d.impuesto}</td>
+                <td class="px-4 py-2 text-right">$${d.subtotal}</td>
+              </tr>
+            `
             )
             .join("")}
         </tbody>
@@ -88,8 +82,7 @@ export function PurchasesPage(containerId: string) {
 
   function showInvoice(
     sale: SaleInterface,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    client: any
+    client: ClienteData
   ) {
     const overlay = document.createElement("div");
     overlay.className =
@@ -143,30 +136,27 @@ export function PurchasesPage(containerId: string) {
             </tr>
             </thead>
             <tbody>
-            ${sale.detalles
-              .map(
-                (d: SaleDetailInterface) => `
-                <tr class="border-b border-gray-200">
-                <td class="px-4 py-2">${d.producto?.nombre || "N/D"}</td>
-                <td class="px-4 py-2 text-center">${d.cantidad}</td>
-                <td class="px-4 py-2 text-right">$${d.precio_unitario}</td>
-                <td class="px-4 py-2 text-right">$${d.impuesto}</td>
-                <td class="px-4 py-2 text-right">$${d.subtotal}</td>
-                </tr>
-            `
-              )
-              .join("")}
+              ${(sale.detalle ?? [])
+                
+                .map(
+                  (d) => `
+                  <tr class="border-b border-gray-200">
+                    <td class="px-4 py-2">${d.producto?.nombre || "N/D"}</td>
+                    <td class="px-4 py-2 text-center">${d.cantidad}</td>
+                    <td class="px-4 py-2 text-right">$${d.precio_unitario}</td>
+                    <td class="px-4 py-2 text-right">$${d.impuesto}</td>
+                    <td class="px-4 py-2 text-right">$${d.subtotal}</td>
+                  </tr>
+                `
+                )
+                .join("")}
             </tbody>
         </table>
 
         <!-- Totales -->
         <div class="text-right space-y-1">
-            <p><span class="font-semibold">Subtotal:</span> $${
-              sale.subtotal
-            }</p>
-            <p><span class="font-semibold">Impuestos:</span> $${
-              sale.impuestos
-            }</p>
+            <p><span class="font-semibold">Subtotal:</span> $${sale.subtotal}</p>
+            <p><span class="font-semibold">Impuestos:</span> $${sale.impuestos}</p>
             <p class="text-xl font-bold mt-2">Total: $${sale.total}</p>
         </div>
 
@@ -195,6 +185,8 @@ export function PurchasesPage(containerId: string) {
       return;
     }
 
+    
+
     const clientData: ClientSaleResponse | null = await getSalesByClient(
       id_cliente
     );
@@ -209,9 +201,7 @@ export function PurchasesPage(containerId: string) {
     clientData.ventas.forEach((sale: SaleInterface) => {
       const date = new Date(sale.fecha).toLocaleDateString();
       const div = document.createElement("div");
-
-      div.className =
-        "bg-white shadow rounded p-4 flex justify-between items-center";
+      div.className = "bg-white shadow rounded p-4 flex justify-between items-center";
 
       div.innerHTML = /* html */ `
     <div>
@@ -223,31 +213,48 @@ export function PurchasesPage(containerId: string) {
       <button class="view-invoice px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">Ver factura</button>
     </div>
   `;
-
-      // Ahora que ya se asignó el innerHTML, los botones existen
-      const downloadBtn = div.querySelector(".download-pdf")!;
-      downloadBtn.addEventListener("click", () => {
-        const invoiceHtml = generateInvoiceHTML(sale, clientData.cliente);
-        const tempElement = document.createElement("div");
-        tempElement.innerHTML = invoiceHtml;
-
-        html2pdf()
-          .from(tempElement)
-          .set({
-            margin: 0.5,
-            filename: `Factura_${sale.id_venta}.pdf`,
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-          })
-          .save();
-      });
-
-      const viewBtn = div.querySelector(".view-invoice")!;
-      viewBtn.addEventListener("click", () => {
-        showInvoice(sale, clientData.cliente);
-      });
-
       listContainer.appendChild(div);
+
+      // Validación: asegúrate de que clientData.cliente existe
+      if (!clientData.cliente) {
+        div.innerHTML += `<p class="text-red-500">No se encontraron datos del cliente.</p>`;
+        listContainer.appendChild(div);
+        return;
+      }
+
+                        // ...dentro del forEach...
+            const cliente: ClienteData = {
+              _id: (clientData.cliente as any)._id || "",
+              nombre: (clientData.cliente as any).nombre || "",
+              apellido: (clientData.cliente as any).apellido || "",
+              cedula: (clientData.cliente as any).cedula || "",
+              direccion: (clientData.cliente as any).direccion || "",
+            };
+            
+            // Ahora úsalo en los botones:
+            const downloadBtn = div.querySelector(".download-pdf")!;
+            downloadBtn.addEventListener("click", () => {
+              const invoiceHtml = generateInvoiceHTML(sale, cliente);
+              const tempElement = document.createElement("div");
+              tempElement.innerHTML = invoiceHtml;
+            
+              html2pdf()
+                .from(tempElement)
+                .set({
+                  margin: 0.5,
+                  filename: `Factura_${sale.id_venta}.pdf`,
+                  html2canvas: { scale: 2 },
+                  jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+                })
+                .save();
+            });
+            
+            const viewBtn = div.querySelector(".view-invoice")!;
+            viewBtn.addEventListener("click", () => {
+              showInvoice(sale, cliente);
+            });
+
+            listContainer.appendChild(div);
     });
   })();
 }

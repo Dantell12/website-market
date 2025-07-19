@@ -133,7 +133,7 @@ const getSalesByClient = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 subtotal: venta.subtotal,
                 impuestos: venta.impuestos,
                 total: venta.total,
-                detalles: lineas,
+                detalle: lineas,
             };
         })));
         // Enviar ventas y datos del cliente

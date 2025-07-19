@@ -2,6 +2,7 @@
 
 import api from "../axios.config";
 import type { ClientSaleResponse } from "../interfaces/client-sale-response";
+import type { SaleInterface } from "../interfaces/sale.interface";
 
 const API_URL = "http://localhost:1880/api/sales";
 
@@ -52,14 +53,21 @@ export const getSalesByClient = async (
  * Obtiene todas las ventas (para el admin).
  * @returns Un array de ventas o null en caso de error.
  */
-export const getAllSalesAdmin = async (): Promise<any[] | null> => {
+export const getAllSalesAdmin = async (): Promise<SaleInterface[] | null> => {
   try {
-    const { data } = await api.get<any[]>(
-      "http://localhost:1880/api/sales/getSales"
+    const token = localStorage.getItem("token");
+
+    const { data } = await api.get<SaleInterface[]>(
+      "http://localhost:1880/api/sales/getSales",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
     );
     return data;
   } catch (error: any) {
-    console.error("Error al obtener todas las ventas (admin):", error);
+    console.error("Error al obtener todas las ventas (admin):", error.response?.data || error.message);
     return null;
   }
 };
