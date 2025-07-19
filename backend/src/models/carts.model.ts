@@ -14,6 +14,7 @@ export interface ICarrito extends Document {
   fecha?: Date;
   estado: "activo" | "abandonado" | "completado";
   productos: ICarritoItem[];
+  numero?: number; // Agregado para el número de carrito
 }
 
 const CarritoItemSchema = new Schema<ICarritoItem>(
@@ -33,6 +34,7 @@ const CarritoSchema = new Schema<ICarrito>(
     fecha:        { type: Date },
     estado:       { type: String, required: true, enum: ["activo", "abandonado", "completado"] },
     productos:    { type: [CarritoItemSchema], required: true },
+    numero:       { type: Number }, // Agregado para el número de carrito
   },
   {
     collection: "carritos",

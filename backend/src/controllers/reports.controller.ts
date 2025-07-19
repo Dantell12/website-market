@@ -125,9 +125,18 @@ export const getFrequentCustomers: RequestHandler = async (req, res) => {
     // Traer datos del cliente
     const clientes = await Promise.all(
       result.map(async (fila) => {
-        const cliente = await Usuario.findById(fila._id).select("nombre apellido cedula").lean();
+        const usuario = await Usuario.findById(fila._id).lean();
+        // Soporta tanto usuario.cliente como root
+        const cliente = usuario?.cliente
+          ? {
+              nombre: usuario.cliente.nombre,
+              apellido: usuario.cliente.apellido,
+              cedula: usuario.cliente.cedula,
+              direccion: usuario.cliente.direccion,
+            }
+          : null;
         return {
-          cliente: cliente || null,
+          cliente,
           cantidadVentas: fila.cantidadVentas,
         };
       })
@@ -171,11 +180,19 @@ export const getAbandonedCarts: RequestHandler = async (_req, res) => {
       if (ventaAsociada) continue;
 
       // Datos del cliente
-      const cliente = await Usuario.findById(carrito.id_cliente).select("nombre apellido cedula").lean();
-
+      const usuario = await Usuario.findById(carrito.id_cliente).lean();
+      const cliente = usuario?.cliente
+        ? {
+            nombre: usuario.cliente.nombre,
+            apellido: usuario.cliente.apellido,
+            cedula: usuario.cliente.cedula,
+            direccion: usuario.cliente.direccion,
+          }
+        : null;
       result.push({
-        id_carrito: carrito._id,
-        cliente: cliente || null,
+        id_carrito: carrito._id?.toString(),
+        numero: carrito.numero, // <-- agrega esto si existe el campo
+        cliente,
         fecha: carrito.fecha,
       });
     }

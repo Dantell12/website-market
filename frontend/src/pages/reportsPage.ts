@@ -76,27 +76,69 @@ export async function ReportsPage(containerId: string) {
         </table>
       </div>
 
-     <!-- Grid de 3 columnas para estas secciones -->  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-   <!-- Productos No Vendidos -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <h3 class="text-xl font-semibold mb-2">Productos No Vendidos</h3>
-     <ul id="unsold-products-list" class="list-disc list-inside text-gray-700">Cargando...</ul>
+     <!-- Grid de 3 columnas para estas secciones -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+  <!-- Productos No Vendidos -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 group">
+    <div class="p-6 bg-indigo-50 flex items-start gap-4 border-b border-indigo-100">
+      <div class="bg-indigo-100 p-3 rounded-lg group-hover:bg-indigo-200 transition-colors">
+        <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <rect x="3" y="7" width="18" height="13" rx="4" stroke="currentColor" />
+          <rect x="7" y="3" width="2" height="4" rx="1" fill="currentColor" />
+          <rect x="15" y="3" width="2" height="4" rx="1" fill="currentColor" />
+        </svg>
+      </div>
+      <div>
+        <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Reporte</span>
+        <h3 class="text-xl font-bold text-gray-800 mt-1">Productos No Vendidos</h3>
+      </div>
     </div>
+    <div class="p-6">
+      <ul id="unsold-products-list" class="space-y-3"></ul>
+    </div>
+  </div>
 
-    <!-- Clientes Frecuentes -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <h3 class="text-xl font-semibold mb-2">Clientes Frecuentes (Último Mes)</h3>
-      <ul id="frequent-customers-list" class="list-disc list-inside text-gray-700">Cargando...</ul>
+  <!-- Clientes Frecuentes -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 group">
+    <div class="p-6 bg-pink-50 flex items-start gap-4 border-b border-pink-100">
+      <div class="bg-pink-100 p-3 rounded-lg group-hover:bg-pink-200 transition-colors">
+        <svg class="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <circle cx="12" cy="8" r="4" stroke="currentColor" />
+          <path d="M4 20c0-4 4-7 8-7s8 3 8 7" stroke="currentColor" />
+        </svg>
+      </div>
+      <div>
+        <span class="text-xs font-semibold text-pink-600 uppercase tracking-wider">Reporte</span>
+        <h3 class="text-xl font-bold text-gray-800 mt-1">Clientes Frecuentes</h3>
+      </div>
     </div>
+    <div class="p-6">
+      <ul id="frequent-customers-list" class="space-y-3"></ul>
+    </div>
+  </div>
 
-    <!-- Carritos Abandonados -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <h3 class="text-xl font-semibold mb-2">Carritos Abandonados</h3>
-      <ul id="abandoned-carts-list" class="list-disc list-inside text-gray-700">Cargando...</ul>
-   </div>
- </div>
+  <!-- Carritos Abandonados -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 group">
+    <div class="p-6 bg-green-50 flex items-start gap-4 border-b border-green-100">
+      <div class="bg-green-100 p-3 rounded-lg group-hover:bg-green-200 transition-colors">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M6 6h15l-1.5 9h-13z" stroke="currentColor" />
+          <circle cx="9" cy="20" r="1.5" fill="currentColor" />
+          <circle cx="18" cy="20" r="1.5" fill="currentColor" />
+          <path d="M6 6L5 2H2" stroke="currentColor" />
+        </svg>
+      </div>
+      <div>
+        <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">Reporte</span>
+        <h3 class="text-xl font-bold text-gray-800 mt-1">Carritos Abandonados</h3>
+      </div>
     </div>
-  `;
+    <div class="p-6">
+      <ul id="abandoned-carts-list" class="space-y-3"></ul>
+    </div>
+  </div>
+</div>
+`;
   root.innerHTML += html;
 
   // 1) Total Vendido
@@ -200,13 +242,17 @@ const ctx1 = (
   // 5) Productos No Vendidos
   const unsoldList = document.getElementById("unsold-products-list")!;
   const unsold = (await getUnsoldProducts()) || [];
-  unsoldList.innerHTML =
+   unsoldList.innerHTML =
     unsold.length === 0
       ? `<li class="text-gray-500">No hay productos sin ventas.</li>`
       : unsold
           .map(
             (p: UnsoldProduct) =>
-              `<li>${p.nombre} (${p.categoria}) – Stock: ${p.stock}</li>`
+              `<li class="bg-white/70 rounded-lg p-3 shadow flex flex-col">
+                <span class="font-semibold">${p.nombre}</span>
+                <span class="text-sm text-gray-500">${p.categoria}</span>
+                <span class="text-sm">Stock: ${p.stock}</span>
+              </li>`
           )
           .join("");
 
@@ -214,7 +260,7 @@ const ctx1 = (
   const minCompras = 1;
   const frequentList = document.getElementById("frequent-customers-list")!;
   const frequent = (await getFrequentCustomers(minCompras)) || [];
-  frequentList.innerHTML =
+    frequentList.innerHTML =
     frequent.length === 0
       ? `<li class="text-gray-500">No hay clientes con más de ${minCompras} compra(s) en el último mes.</li>`
       : frequent
@@ -223,24 +269,31 @@ const ctx1 = (
             const nombreCompleto = cliente
               ? `${cliente.nombre} ${cliente.apellido}`
               : "Cliente desconocido";
-            return `<li>${nombreCompleto} – Compras: ${fc.cantidadVentas}</li>`;
+            return `<li class="bg-white/70 rounded-lg p-3 shadow flex flex-col">
+              <span class="font-semibold">${nombreCompleto}</span>
+              <span class="text-sm">Compras: ${fc.cantidadVentas}</span>
+            </li>`;
           })
           .join("");
 
   // 7) Carritos Abandonados
   const abandonedList = document.getElementById("abandoned-carts-list")!;
   const abandoned = (await getAbandonedCarts()) || [];
-  abandonedList.innerHTML =
+    abandonedList.innerHTML =
     abandoned.length === 0
       ? `<li class="text-gray-500">No hay carritos abandonados.</li>`
       : abandoned
-          .map((ac: AbandonedCart) => {
+          .map((ac: AbandonedCart, idx: number) => {
             const cliente = ac.cliente;
             const nombreCompleto = cliente
               ? `${cliente.nombre} ${cliente.apellido}`
               : "Cliente desconocido";
             const fecha = new Date(ac.fecha).toISOString().split("T")[0];
-            return `<li>Carrito #${ac._id} – ${nombreCompleto} – Fecha: ${fecha}</li>`;
+            return `<li class="bg-white/70 rounded-lg p-3 shadow flex flex-col">
+              <span class="font-semibold text-green-700">Carrito #${idx + 1}</span>
+              <span class="text-sm">${nombreCompleto}</span>
+              <span class="text-sm text-gray-500">Fecha: ${fecha}</span>
+            </li>`;
           })
           .join("");
 }

@@ -143,9 +143,18 @@ const getFrequentCustomers = (req, res) => __awaiter(void 0, void 0, void 0, fun
         ]);
         // Traer datos del cliente
         const clientes = yield Promise.all(result.map((fila) => __awaiter(void 0, void 0, void 0, function* () {
-            const cliente = yield users_model_1.Usuario.findById(fila._id).select("nombre apellido cedula").lean();
+            const usuario = yield users_model_1.Usuario.findById(fila._id).lean();
+            // Soporta tanto usuario.cliente como root
+            const cliente = (usuario === null || usuario === void 0 ? void 0 : usuario.cliente)
+                ? {
+                    nombre: usuario.cliente.nombre,
+                    apellido: usuario.cliente.apellido,
+                    cedula: usuario.cliente.cedula,
+                    direccion: usuario.cliente.direccion,
+                }
+                : null;
             return {
-                cliente: cliente || null,
+                cliente,
                 cantidadVentas: fila.cantidadVentas,
             };
         })));
@@ -178,6 +187,7 @@ const getUnsoldProducts = (_req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.getUnsoldProducts = getUnsoldProducts;
 const getAbandonedCarts = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         // Carritos activos con productos y sin venta asociada
         const carritos = yield carts_model_1.Carrito.find({ estado: "activo", "productos.0": { $exists: true } }).lean();
@@ -188,10 +198,19 @@ const getAbandonedCarts = (_req, res) => __awaiter(void 0, void 0, void 0, funct
             if (ventaAsociada)
                 continue;
             // Datos del cliente
-            const cliente = yield users_model_1.Usuario.findById(carrito.id_cliente).select("nombre apellido cedula").lean();
+            const usuario = yield users_model_1.Usuario.findById(carrito.id_cliente).lean();
+            const cliente = (usuario === null || usuario === void 0 ? void 0 : usuario.cliente)
+                ? {
+                    nombre: usuario.cliente.nombre,
+                    apellido: usuario.cliente.apellido,
+                    cedula: usuario.cliente.cedula,
+                    direccion: usuario.cliente.direccion,
+                }
+                : null;
             result.push({
-                id_carrito: carrito._id,
-                cliente: cliente || null,
+                id_carrito: (_a = carrito._id) === null || _a === void 0 ? void 0 : _a.toString(),
+                numero: carrito.numero, // <-- agrega esto si existe el campo
+                cliente,
                 fecha: carrito.fecha,
             });
         }
