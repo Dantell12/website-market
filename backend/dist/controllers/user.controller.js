@@ -37,7 +37,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const clienteData = { nombre, apellido, cedula, direccion };
         usuario.cliente = clienteData;
         yield usuario.save();
-        res.status(201).json({ msg: "Usuario registrado", userId: usuario._id });
+        res.status(201).json({ msg: "Usuario registrado", userId: usuario.id });
     }
     catch (err) {
         console.error("Error registerUser:", err);
@@ -59,12 +59,12 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             res.status(401).json({ msg: "Contraseña incorrecta" });
             return;
         }
-        const token = jsonwebtoken_1.default.sign({ id: usuario._id, email: usuario.email, rol: usuario.rol }, SECRET_KEY, { expiresIn: "2h" });
+        const token = jsonwebtoken_1.default.sign({ _id: usuario.id, email: usuario.email, rol: usuario.rol }, SECRET_KEY, { expiresIn: "2h" });
         res.json({
             msg: "Login exitoso",
             token,
             user: {
-                id: usuario._id,
+                id: usuario.id,
                 email: usuario.email,
                 rol: usuario.rol,
                 cliente: usuario.cliente || null,

@@ -10,19 +10,22 @@ const API_URL = "http://localhost:1880/api/sales";
  * @param id_cliente El ID del cliente que confirma la compra.
  * @returns Un objeto con éxito y, en caso positivo, el ID de la venta.
  */
-export const confirmSale = async (
-  id_cliente: number
-): Promise<{ success: boolean; id_venta?: number; msg: string }> => {
-  try {
-    const { data } = await api.post<{ msg: string; id_venta: number }>(
-      `${API_URL}/confirm-sale/${id_cliente}`
-    );
-    return { success: true, id_venta: data.id_venta, msg: data.msg };
-  } catch (error: any) {
-    const msg = error.response?.data?.msg || "Error al confirmar la venta.";
-    return { success: false, msg };
-  }
-};
+  export const confirmSale = async (id_cliente: string): Promise<{ success: boolean; msg: string }> => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const { data } = await api.post(`/sales/confirm-sale/${id_cliente}`, null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return { success: true, msg: data.msg };
+    } catch (error: any) {
+      console.error("Error al confirmar venta:", error.response?.data || error.message);
+      return { success: false, msg: error.response?.data?.msg || "Error al confirmar venta" };
+    }
+  };
 
 /**
  * Obtiene todas las ventas de un cliente con sus detalles y la información del cliente.
@@ -30,7 +33,7 @@ export const confirmSale = async (
  * @returns Un objeto con cliente y ventas, o null en caso de error.
  */
 export const getSalesByClient = async (
-  id_cliente: number
+  id_cliente: string
 ): Promise<ClientSaleResponse | null> => {
   try {
     const { data } = await api.get<ClientSaleResponse>(

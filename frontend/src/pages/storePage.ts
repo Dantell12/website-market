@@ -5,6 +5,7 @@ import { ProductCard } from "../components/productCard";
 import type { ProductInterface } from "../interfaces/product.interface";
 import { addProductToCart } from "../services/cart.service";
 import { getAllProducts } from "../services/product.service";
+
 async function addToCart(prod: ProductInterface) {
   const id_cliente = localStorage.getItem("id");
   const cantidad = 1;
@@ -14,14 +15,13 @@ async function addToCart(prod: ProductInterface) {
     return;
   }
 
-  const result = await addProductToCart(id_cliente, prod._id, cantidad);
-
-  if (result.success) {
-    alert(`"${prod.nombre}" agregado al carrito.`);
-  } else if (result.msg === "El producto ya está agregado al carrito") {
-    alert("Este producto ya está en tu carrito.");
-  } else {
-    alert(result.msg);
+  try {
+    await addProductToCart(id_cliente, prod._id, cantidad);
+    alert(`"${prod.nombre}" ha sido agregado al carrito.`);
+  } catch (error: any) {
+    // El backend ya envía un mensaje claro en caso de error (ej: producto ya en carrito, stock insuficiente)
+    // y lo mostramos directamente.
+    alert(error.response?.data?.msg || "Ocurrió un error inesperado al agregar el producto.");
   }
 }
 

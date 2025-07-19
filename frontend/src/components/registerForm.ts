@@ -1,6 +1,6 @@
 // src/components/RegisterForm.ts
 import { registrarUsuario } from "../services/user.service";
-import type { newUserInterface } from "../interfaces/newUser.interface";
+import type { NewUserInterface } from "../interfaces/newUser.interface";
 
 export function RegisterForm(onSuccess: () => void) {
   const div = document.createElement("div");
@@ -54,8 +54,7 @@ export function RegisterForm(onSuccess: () => void) {
     const direccion = (form.direccion as HTMLInputElement).value.trim();
     const password  = (form.password  as HTMLInputElement).value;
 
-    const newUser: newUserInterface = {
-      id_usuario: 0,       // backend ignora o autoincrementa
+    const newUser: NewUserInterface = {      // backend ignora o autoincrementa
       email,
       password,
       rol: "cliente",      // siempre cliente al registrarse

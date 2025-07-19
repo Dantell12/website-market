@@ -12,6 +12,18 @@ export function CartPage(containerId: string) {
   root.innerHTML = "";
   root.appendChild(Navbar());
 
+  // 1. Lee el ID y valida sesión
+  const id_cliente = localStorage.getItem("id");
+  if (!id_cliente) {
+    root.innerHTML = `<p class="text-red-500 text-center mt-6">
+      Debes iniciar sesión para ver el carrito.
+    </p>`;
+    return;
+  }
+  // TS sabe ahora que `id_cliente` es `string`, no `null`
+  const id_cliente_str: string = id_cliente;
+
+  // 2. Render de la UI
   root.innerHTML += `
     <div class="p-6 flex flex-col lg:flex-row gap-6">
       <div id="cart-items" class="flex-1 space-y-4"></div>
@@ -36,6 +48,7 @@ export function CartPage(containerId: string) {
   const totalEl       = root.querySelector<HTMLSpanElement>("#cart-total")!;
   const checkoutBtn   = root.querySelector<HTMLButtonElement>("#checkout-btn")!;
 
+  // 3. Función para cargar el carrito
   async function loadCart() {
     itemsContainer.innerHTML = `<p class="text-gray-600">Cargando carrito...</p>`;
     const items = await listCartProducts();
@@ -51,13 +64,21 @@ export function CartPage(containerId: string) {
     }
 
     itemsContainer.innerHTML = "";
+    summaryLines.innerHTML = "";
     let total = 0;
-    // Clave: originalQuantities usa el _id del producto
     const originalQuantities: Record<string, number> = {};
 
-    items.forEach((item) => {
-      // Ahora item.id_producto es el documento del producto
-      const prod = item.id_producto as any; // as ProductInterface
+    // Render items
+    interface CartItem {
+      id_producto: any;
+      cantidad: number;
+      precio_unitario: number;
+      impuesto?: number;
+      subtotal?: number;
+    }
+
+    (items as CartItem[]).forEach((item: CartItem) => {
+      const prod = item.id_producto as any;
       const prodId = prod._id as string;
 
       originalQuantities[prodId] = item.cantidad;
@@ -85,9 +106,8 @@ export function CartPage(containerId: string) {
       itemsContainer.appendChild(div);
     });
 
-    // Resumen
-    summaryLines.innerHTML = "";
-    items.forEach((item) => {
+    // Resumen líneas
+    items.forEach((item: CartItem) => {
       const prod = item.id_producto as any;
       const line = document.createElement("p");
       line.className = "flex justify-between";
@@ -96,14 +116,14 @@ export function CartPage(containerId: string) {
       summaryLines.appendChild(line);
     });
 
+    // Total y habilitar botón
     totalEl.textContent = total.toFixed(2);
     checkoutBtn.disabled = false;
     checkoutBtn.classList.remove("opacity-50", "cursor-not-allowed");
 
-    // Checkout
+    // Evento de compra
     checkoutBtn.onclick = async () => {
-      const id_cliente = Number(localStorage.getItem("id")!);
-      const result = await confirmSale(id_cliente);
+      const result = await confirmSale(id_cliente_str);
       if (result.success) {
         alert("Venta confirmada");
         loadCart();
@@ -114,30 +134,18 @@ export function CartPage(containerId: string) {
 
     // Cambiar cantidad
     itemsContainer.querySelectorAll<HTMLInputElement>(".qty-input")
-      .forEach((input) => {
+      .forEach(input => {
         input.addEventListener("change", async () => {
           const prodId = input.dataset.producto!;
           const newQty = Number(input.value);
-          const id_cliente = localStorage.getItem("id")!;
-
           if (newQty < 1) {
             input.value = "1";
             return;
           }
-          try {
-            const ok = await updateCartProduct(id_cliente, prodId, newQty);
-            if (!ok) {
-              alert("No se pudo actualizar la cantidad.");
-              input.value = originalQuantities[prodId].toString();
-            } else {
-              loadCart();
-            }
-          } catch (err: any) {
-            if (err.response?.status === 400) {
-              alert(err.response.data.msg);
-            } else {
-              alert("Error al actualizar la cantidad.");
-            }
+          const ok = await updateCartProduct(prodId, newQty);
+          if (ok) loadCart();
+          else {
+            alert("No se pudo actualizar la cantidad.");
             input.value = originalQuantities[prodId].toString();
           }
         });
@@ -145,12 +153,11 @@ export function CartPage(containerId: string) {
 
     // Eliminar producto
     itemsContainer.querySelectorAll<HTMLButtonElement>(".remove-btn")
-      .forEach((btn) => {
+      .forEach(btn => {
         btn.addEventListener("click", async () => {
           const prodId = btn.dataset.producto!;
-          const id_cliente = localStorage.getItem("id")!;
           if (confirm("¿Eliminar este producto del carrito?")) {
-            const ok = await removeProductFromCart(id_cliente, prodId);
+            const ok = await removeProductFromCart(prodId);
             if (ok) loadCart();
             else alert("No se pudo eliminar el producto.");
           }
@@ -158,5 +165,6 @@ export function CartPage(containerId: string) {
       });
   }
 
+  // 4. Carga inicial
   loadCart();
 }

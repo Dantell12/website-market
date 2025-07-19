@@ -11,8 +11,8 @@ export interface SaleDetailInterface {
 }
 
 export interface SaleInterface {
-  id_venta: number;
-  fecha: string;        
+  id_venta: string;
+  fecha: string;
   subtotal: number;
   impuestos: number;
   total: number;

@@ -29,7 +29,7 @@ export const registerUser: RequestHandler = async (req, res) => {
     usuario.cliente = clienteData;
     await usuario.save();
 
-    res.status(201).json({ msg: "Usuario registrado", userId: usuario._id });
+    res.status(201).json({ msg: "Usuario registrado", userId: usuario.id });
   } catch (err) {
     console.error("Error registerUser:", err);
     res.status(500).json({ msg: "Error interno al registrar usuario" });
@@ -54,7 +54,7 @@ export const loginUser: RequestHandler = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: usuario._id, email: usuario.email, rol: usuario.rol },
+      { _id: usuario.id, email: usuario.email, rol: usuario.rol },
       SECRET_KEY,
       { expiresIn: "2h" }
     );
@@ -63,7 +63,7 @@ export const loginUser: RequestHandler = async (req, res) => {
       msg: "Login exitoso",
       token,
       user: {
-        id: usuario._id,
+        id: usuario.id,
         email: usuario.email,
         rol: usuario.rol,
         cliente: usuario.cliente || null,

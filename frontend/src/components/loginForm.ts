@@ -7,10 +7,10 @@ export function LoginForm(onLogin: (rol: string) => void) {
   div.innerHTML = `
     <form class="bg-white p-6 rounded shadow-md w-80 space-y-4">
       <h2 class="text-2xl font-bold text-center text-gray-800">Iniciar Sesión</h2>
-      <input type="email" name="email" placeholder="Correo electrónico"
-             required class="w-full px-3 py-2 border rounded"/>
-      <input type="password" name="password" placeholder="Contraseña"
-             required class="w-full px-3 py-2 border rounded"/>
+      <input type="email" name="email" placeholder="Correo electrónico" autocomplete="email"
+             required class="w-full px-3 py-2 border rounded" />
+      <input type="password" name="password" placeholder="Contraseña" autocomplete="current-password"
+             required class="w-full px-3 py-2 border rounded" />
       <button type="submit"
               class="w-full bg-green-700 hover:bg-green-800 text-white py-2 rounded font-semibold">
         Ingresar
@@ -38,12 +38,11 @@ export function LoginForm(onLogin: (rol: string) => void) {
 
     const result = await loginUsuario(email, password);
 
-    if (result?.token) {
-      // Guardar token y rol
+        // ...existing code...
+        if (result?.token) {
       localStorage.setItem("token", result.token);
-      console.log("Token guardado:", result.token);
       localStorage.setItem("rol", result.user.rol);
-      localStorage.setItem("id", result.user.id); // <-- ahora es 'id'
+      localStorage.setItem("id", result.user.id);
       localStorage.setItem("email", result.user.email);
 
       // Si es cliente, guarda los datos de cliente en localStorage (opcional)

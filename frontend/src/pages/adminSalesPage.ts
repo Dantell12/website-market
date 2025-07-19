@@ -1,10 +1,7 @@
 // src/pages/AdminSalesPage.ts
 
 import { getAllSalesAdmin, getSalesByClient } from "../services/sales.service";
-import type {
-  SaleInterface,
-  SaleDetailInterface,
-} from "../interfaces/sale.interface";
+import type { SaleInterface, SaleDetailInterface } from "../interfaces/sale.interface";
 import type { ClientInterface } from "../interfaces/client.interface";
 import type { ClientSaleResponse } from "../interfaces/client-sale-response";
 // @ts-ignore: Librería sin tipos definidos
@@ -60,9 +57,9 @@ export async function AdminSalesPage(containerId: string) {
         </div>
         <div class="mb-6">
           <h3 class="text-lg font-semibold mb-1">Cliente</h3>
-          <p>Nombre: ${client.nombre} ${client.apellido}</p>
-          <p>DNI/RUC: ${client.cedula}</p>
-          <p>Dirección: ${client.direccion}</p>
+          <p>Nombre: ${client.cliente?.nombre || ""} ${client.cliente?.apellido || ""}</p>
+          <p>DNI/RUC: ${client.cliente?.cedula || ""}</p>
+          <p>Dirección: ${client.cliente?.direccion || ""}</p>
         </div>
         <table class="w-full text-sm text-left text-gray-700 mb-6 border border-gray-300">
           <thead class="bg-gray-100">
@@ -143,22 +140,18 @@ export async function AdminSalesPage(containerId: string) {
   // Cargar lista de clientes en el combo
   async function loadClients() {
     const clients = (await getAllClients()) || [];
-
-    // Ya existe la opción “Todas las ventas” con value="-1" en el HTML inicial,
-    // así que solo agregamos los clientes reales a continuación:
     clients.forEach((c) => {
       const opt = document.createElement("option");
-      opt.value = c.id_cliente.toString();
-      opt.textContent = `${c.nombre} ${c.apellido}`;
+      opt.value = c._id; // MongoDB _id
+      opt.textContent = `${c.cliente?.nombre || ""} ${c.cliente?.apellido || ""}`;
       filterSelect.appendChild(opt);
     });
   }
 
   // Evento para recargar ventas cuando cambia el filtro
   filterSelect.addEventListener("change", () => {
-    const val = filterSelect.value;
-    const clientId = parseInt(val, 10);
-    if (isNaN(clientId) || clientId === -1) {
+    const clientId = filterSelect.value;
+    if (clientId === "-1") {
       loadSales();
     } else {
       loadSales(clientId);
@@ -166,10 +159,9 @@ export async function AdminSalesPage(containerId: string) {
   });
 
   // Cargar ventas (por cliente o todas)
-  async function loadSales(clientId?: number) {
+  async function loadSales(clientId?: string) {
     listContainer.innerHTML = `<p class="text-gray-600">Cargando ventas...</p>`;
 
-    // Este objeto contendrá o bien {ventas de un cliente, cliente}, o bien {ventas todas, cliente=undefined}
     let response:
       | ClientSaleResponse
       | { ventas: SaleInterface[]; cliente: ClientInterface } = {
@@ -177,25 +169,20 @@ export async function AdminSalesPage(containerId: string) {
       cliente: undefined as any,
     };
 
-    if (clientId != null && clientId !== -1) {
-      // ventas de un cliente específico
+    if (clientId && clientId !== "-1") {
       response = (await getSalesByClient(clientId)) || {
         ventas: [],
         cliente: undefined as any,
       };
     } else {
-      // “Todas las ventas”: getAllSalesAdmin() devuelve un array de objetos
       const all = (await getAllSalesAdmin()) || [];
-
-      // Reconstruimos un listado de SaleInterface[] sin la parte client
       const ventas: SaleInterface[] = all.map((v: any) => ({
-        id_venta: v.id_venta,
+        id_venta: v._id, // MongoDB _id
         fecha: v.fecha,
         subtotal: v.subtotal,
         impuestos: v.impuestos,
         total: v.total,
         detalles: v.detalles.map((d: any) => ({
-          id_detalle_venta: d.id_detalle_venta,
           id_producto: d.id_producto,
           cantidad: d.cantidad,
           precio_unitario: d.precio_unitario,
@@ -204,14 +191,9 @@ export async function AdminSalesPage(containerId: string) {
           producto: d.producto || null,
         })),
       }));
-
-      // Aquí el cliente no aplica, porque abarca todas las ventas
       response = { ventas, cliente: undefined as any };
-
-      // Guardamos `all` en un scope superior para buscar más abajo
       allVentas = all;
     }
-
     listContainer.innerHTML = "";
 
     if (!response.ventas.length) {
@@ -227,13 +209,12 @@ export async function AdminSalesPage(containerId: string) {
 
       // Si estamos mostrando “todas las ventas”, buscamos el cliente correspondiente en allVentas
       let clienteInfoHTML = "";
-      if (!clientId || clientId === -1) {
-        // `allVentas` es la lista original que contiene { cliente: {...} }
-        const registro = allVentas.find((v) => v.id_venta === sale.id_venta);
+      if (!clientId || clientId === "-1") {
+        const registro = allVentas.find((v) => v._id === sale.id_venta);
         if (registro && registro.cliente) {
           const cli = registro.cliente as ClientInterface;
           clienteInfoHTML = `<p class="text-sm text-gray-600">
-              Cliente: ${cli.nombre} ${cli.apellido}
+              Cliente: ${cli.cliente?.nombre || ""} ${cli.cliente?.apellido || ""}
             </p>`;
         }
       }
@@ -258,12 +239,10 @@ export async function AdminSalesPage(containerId: string) {
       const downloadBtn = div.querySelector(".download-pdf")!;
       downloadBtn.addEventListener("click", () => {
         let cli: ClientInterface | undefined;
-        if (clientId != null && clientId !== -1) {
-          // caso “ventas por cliente específico”
+        if (clientId && clientId !== "-1") {
           cli = (response as ClientSaleResponse).cliente;
         } else {
-          // caso “todas las ventas”: buscamos en allVentas
-          const registro = allVentas.find((v) => v.id_venta === sale.id_venta);
+          const registro = allVentas.find((v) => v._id === sale.id_venta);
           cli = registro?.cliente;
         }
         if (cli) {
@@ -275,10 +254,10 @@ export async function AdminSalesPage(containerId: string) {
       const viewBtn = div.querySelector(".view-invoice")!;
       viewBtn.addEventListener("click", () => {
         let cli: ClientInterface | undefined;
-        if (clientId != null && clientId !== -1) {
+        if (clientId && clientId !== "-1") {
           cli = (response as ClientSaleResponse).cliente;
         } else {
-          const registro = allVentas.find((v) => v.id_venta === sale.id_venta);
+          const registro = allVentas.find((v) => v._id === sale.id_venta);
           cli = registro?.cliente;
         }
         if (cli) {

@@ -9,7 +9,6 @@ import type {
 // @ts-ignore: Librería sin tipos definidos
 import html2pdf from "html2pdf.js";
 import type { ClientSaleResponse } from "../interfaces/client-sale-response";
-import type { ClientInterface } from "../interfaces/client.interface";
 
 export function PurchasesPage(containerId: string) {
   const root = document.getElementById(containerId)!;
@@ -26,7 +25,10 @@ export function PurchasesPage(containerId: string) {
   const listContainer = root.querySelector<HTMLElement>("#purchases-list")!;
   function generateInvoiceHTML(
     sale: SaleInterface,
-    client: ClientInterface
+    // Se ajusta el tipo, ya que la función recibe directamente el objeto
+    // con los datos del cliente, no el objeto de usuario completo.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client: any
   ): string {
     const date = new Date(sale.fecha).toLocaleString();
 
@@ -47,7 +49,7 @@ export function PurchasesPage(containerId: string) {
         <h3 class="text-lg font-semibold mb-1">Cliente</h3>
         <p>Nombre: ${client.nombre} ${client.apellido}</p>
         <p>DNI/RUC: ${client.cedula}</p>
-        <p>Dirección: ${client.direccion}</p>
+        <p>Dirección: ${client.direccion || "N/D"}</p>
       </div>
       <table class="w-full text-sm text-left text-gray-700 mb-6 border border-gray-300">
         <thead class="bg-gray-100">
@@ -84,7 +86,11 @@ export function PurchasesPage(containerId: string) {
   `;
   }
 
-  function showInvoice(sale: SaleInterface, client: ClientInterface) {
+  function showInvoice(
+    sale: SaleInterface,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client: any
+  ) {
     const overlay = document.createElement("div");
     overlay.className =
       "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
@@ -116,13 +122,13 @@ export function PurchasesPage(containerId: string) {
         <!-- Datos del cliente -->
         <div class="mb-6">
             <h3 class="text-lg font-semibold mb-1">Cliente</h3>
-            <p>Nombre: <span class="text-gray-700">${client.nombre} ${
+           <p>Nombre: <span class="text-gray-700">${client.nombre} ${
       client.apellido
     }</span></p>
-            <p>DNI/RUC: <span class="text-gray-700">${client.cedula}</span></p>
-            <p>Dirección: <span class="text-gray-700">${
-              client.direccion
-            }</span></p>
+<p>DNI/RUC: <span class="text-gray-700">${client.cedula}</span></p>
+<p>Dirección: <span class="text-gray-700">${
+      client.direccion || "N/D"
+    }</span></p>
         </div>
 
         <!-- Tabla de productos -->
@@ -182,7 +188,13 @@ export function PurchasesPage(containerId: string) {
   // Carga inicial de compras
   (async () => {
     listContainer.innerHTML = `<p class="text-gray-600">Cargando compras...</p>`;
-    const id_cliente = Number(localStorage.getItem("id_cliente"));
+    const id_cliente = localStorage.getItem("id");
+
+    if (!id_cliente) {
+      listContainer.innerHTML = `<p class="text-red-500 text-center mt-6">Debes iniciar sesión para ver tus compras.</p>`;
+      return;
+    }
+
     const clientData: ClientSaleResponse | null = await getSalesByClient(
       id_cliente
     );

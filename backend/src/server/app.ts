@@ -13,6 +13,7 @@ import clientRouter from "../routes/client.routes";
 import productRouter from "../routes/products.routes";
 import reportsRouter from "../routes/reports.routes";
 import cartRouter from "../routes/cart.routes";
+import salesRouter from "../routes/sales.routes";
 
 export default class App {
   public app: express.Application;
@@ -69,6 +70,7 @@ export default class App {
     this.app.use("/api/products", productRouter);
     this.app.use("/api/reports", reportsRouter);
     this.app.use("/api/cart", cartRouter);
+    this.app.use("/api/sales", salesRouter);
   }
 
   private listen() {

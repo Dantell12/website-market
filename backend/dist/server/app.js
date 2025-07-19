@@ -25,6 +25,7 @@ const client_routes_1 = __importDefault(require("../routes/client.routes"));
 const products_routes_1 = __importDefault(require("../routes/products.routes"));
 const reports_routes_1 = __importDefault(require("../routes/reports.routes"));
 const cart_routes_1 = __importDefault(require("../routes/cart.routes"));
+const sales_routes_1 = __importDefault(require("../routes/sales.routes"));
 class App {
     constructor() {
         this.app = (0, express_1.default)();
@@ -67,6 +68,7 @@ class App {
         this.app.use("/api/products", products_routes_1.default);
         this.app.use("/api/reports", reports_routes_1.default);
         this.app.use("/api/cart", cart_routes_1.default);
+        this.app.use("/api/sales", sales_routes_1.default);
     }
     listen() {
         this.app.listen(this.port, () => {

@@ -1,6 +1,7 @@
 // src/interfaces/cliente.interface.ts
 
 export interface ClienteData {
+  _id:      string;
   nombre:   string;
   apellido: string;
   cedula:   string;

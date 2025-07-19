@@ -1,68 +1,57 @@
 // src/services/cart.service.ts
 import api from "../axios.config";
-import type { CartItemInterface } from "../interfaces/cart-item.interface";
 
-const API_URL = "/cart";
+export const addProductToCart = async (id_cliente: string, productId: string, quantity: number) => {
+  if (!id_cliente) throw new Error('Usuario no autenticado');
 
-// Agregar producto al carrito
-export const addProductToCart = async (
-  id_cliente: string,
-  id_producto: string,
-  cantidad: number
-): Promise<{ success: boolean; msg: string }> => {
   try {
-    const { data } = await api.post(`${API_URL}/agregar-producto`, {
+    const { data } = await api.post("/cart/agregar-producto", {
       id_cliente,
-      id_producto,
-      cantidad,
+      id_producto: productId,
+      cantidad: quantity
     });
-    return { success: true, msg: data.msg };
-  } catch (error: any) {
-    return { success: false, msg: error.response?.data?.msg ?? "Error" };
-  }
-};
-
-// Listar productos del carrito
-export const listCartProducts = async (): Promise<CartItemInterface[] | null> => {
-  try {
-    const id_cliente = localStorage.getItem("id");           // <-- string
-    if (!id_cliente) throw new Error("Cliente no autenticado");
-
-    const { data } = await api.get<CartItemInterface[]>(
-      `${API_URL}/listar-productos/${id_cliente}`
-    );
     return data;
   } catch (error) {
-    console.error("Error al listar productos del carrito:", error);
-    return null;
+    console.error('Error al agregar producto:', error);
+    throw error;
   }
 };
 
-// Eliminar producto
-export const removeProductFromCart = async (
-  id_cliente: string,
-  id_producto: string
-): Promise<boolean> => {
+export const listCartProducts = async () => {
+  const id_cliente = localStorage.getItem('id'); // <-- Cambia aquí
+  if (!id_cliente) throw new Error('Usuario no autenticado');
+
   try {
-    await api.delete(`${API_URL}/eliminar-productos/${id_cliente}/${id_producto}`);
+    const { data } = await api.get(`/cart/listar-productos/${id_cliente}`);
+    return data;
+  } catch (error) {
+    console.error('Error al listar productos:', error);
+    throw error;
+  }
+};
+
+export const removeProductFromCart = async (productId: string): Promise<boolean> => {
+  const id_cliente = localStorage.getItem('id'); // <-- Cambia aquí
+  if (!id_cliente) throw new Error('Usuario no autenticado');
+
+  try {
+    await api.delete(`/cart/eliminar-productos/${id_cliente}/${productId}`);
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Error al eliminar producto:', error);
     return false;
   }
 };
 
-// Actualizar cantidad
-export const updateCartProduct = async (
-  id_cliente: string,
-  id_producto: string,
-  cantidad: number
-): Promise<boolean> => {
+export const updateCartProduct = async (productId: string, quantity: number): Promise<boolean> => {
+  const id_cliente = localStorage.getItem('id'); // <-- Cambia aquí
+  if (!id_cliente) throw new Error('Usuario no autenticado');
+
   try {
-    await api.put(
-      `${API_URL}/update-productos/${id_cliente}/${id_producto}/${cantidad}`
-    );
+    await api.put(`/cart/update-productos/${id_cliente}/${productId}/${quantity}`);
     return true;
-  } catch {
+  } catch (error) {
+    console.error('Error al actualizar producto:', error);
     return false;
   }
 };

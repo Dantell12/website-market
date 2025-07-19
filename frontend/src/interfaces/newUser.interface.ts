@@ -7,4 +7,5 @@ export interface NewUserInterface {
   apellido:  string;
   cedula:    string;
   direccion?: string;
+  rol: string;
 }
